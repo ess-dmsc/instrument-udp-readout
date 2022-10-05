@@ -105,7 +105,11 @@ TRACE
 
     FEN = 0; // always for MIRACLES
 
-    tube_pair = (hetube/2)%11;
+    tube_pair = (hetube % 24)/2;
+
+    if ((RING == 2) || (RING == 3)) {
+      hetube += 48;
+    }
 
     // Amplitudes are dependent on 'A' or 'B' end of a tube-pair and y value
     A = 5000;
