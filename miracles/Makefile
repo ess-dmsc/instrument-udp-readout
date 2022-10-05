@@ -19,7 +19,7 @@ $(LIB): $(WRAPSRC) $(WRAPINC)
 	g++ --std=c++11 $(INCLUDE) $(WRAPSRC) --shared  -o $@
 
 run: $(INSTR).out
-	mcrun $(INSTR).instr -n 100000000 --no-output sendPackets=1
+	mcrun $(INSTR).instr -n 1000000000 --no-output sendPackets=1
 
 clean:
 	rm -fr $(INSTR).c $(INSTR).out $(INSTR).out.* $(INSTR)_* $(LIB)

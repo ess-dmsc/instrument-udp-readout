@@ -23,79 +23,17 @@ SHARE
 
 #include <unistd.h>
 
-  void delay() {
-	for (int i=0; i<300; ++i) sleep(0.1);
-	}
-
   struct efu_time {
     uint32_t hi;
     uint32_t lo;
   };
   typedef struct efu_time efu_time_t;
 
-  efu_time_t efu_now(){
-    efu_time_t out;
-    out.hi = 0;
-    out.lo = 0;
-    return out;
-  }
-  efu_time_t efu_add(efu_time_t a, efu_time_t b){
-    efu_time_t out;
-    out.hi = a.hi + b.hi;
-    uint64_t r = (uint64_t)a.lo + (uint64_t)b.lo;
-    uint64_t m = 88052499;
-    if (r > m) {
-      out.hi += 1u;
-      r -= m;
-    }
-    out.lo = (uint32_t)r;
-    return out;
-  }
-  efu_time_t efu_sub(efu_time_t a, efu_time_t b){
-    efu_time_t out;
-    out.hi = a.hi - b.hi;
-    uint64_t r;
-    if (a.lo < b.lo) {
-      r = (uint64_t)a.lo - (uint64_t)b.lo;
-    } else {
-      out.hi -= 1u;
-      r = ((uint64_t)88052499 + (uint64_t)a.lo) - (uint64_t)b.lo;
-    }
-    out.lo = (uint32_t)r;
-    return out;
-  }
-  int efu_compare(efu_time_t a, efu_time_t b){
-	  int out=0;
-		if (a.hi > b.hi || a.hi < b.hi) {
-		  out = a.hi > b.hi ? 1 : -1;
-		} else if (a.lo > b.lo || a.lo < b.lo) {
-		  out = a.lo > b.lo ? 1 : -1;
-		}
-		return out;
-  }
-  efu_time_t efu_from_double(double a){
-    efu_time_t out;
-    out.hi = (uint32_t)a;
-    double r = a - (double)out.hi;
-    out.lo = (uint32_t)(r * 88052499);
-    return out;
-  }
-  efu_time_t now_in_sec_88MHz() {
-    struct timeval te;
-    gettimeofday(&te, NULL);
-    efu_time_t out;
-    out.hi = (uint32_t)te.tv_sec;
-    uint64_t r = (uint64_t) te.tv_usec * (uint64_t) 88052499;
-    out.lo = (uint32_t)(r/(uint64_t)(1000000));
-    return out;
-  }
-
-
-
   void throw_error(char* named, char* variable){
     printf("Event_broadcaster: %s: Particle variable %s inaccessible, exiting.\n", named, variable);
     exit(-1);
   }
+
   int particle_getvar_int(_class_particle* p, char* name){
       double bits = particle_getvar(p, name, 0);
       return *(int*)&bits;
@@ -115,106 +53,86 @@ efu_time_t now_time;
 
 INITIALIZE
 %{
-// Include the header file and run any initialization for the real broadcaster
-if (ip == 0 || ip[0] == '\0'){
-	miracles = miracles_readout_create("127.0.0.1", port);
-} else {
-	miracles = miracles_readout_create(ip, port);
-}
-miracles_readout_setPulseTime(miracles, 1, 0, 0, 0);
-miracles_readout_newPacket(miracles);
+  // Include the header file and run any initialization for the real broadcaster
+  if (ip == 0 || ip[0] == '\0'){
+  	miracles = miracles_readout_create("127.0.0.1", port);
+  } else {
+  	miracles = miracles_readout_create(ip, port);
+  }
 
-// Make sure the provided property names are accessible -- no error checking later
-int failure=0;
-particle_getvar(_particle, ring, &failure);
-if (failure) throw_error(NAME_CURRENT_COMP, ring);
-
-particle_getvar(_particle, fen, &failure);
-if (failure) throw_error(NAME_CURRENT_COMP, fen);
-
-particle_getvar(_particle, tube, &failure);
-if (failure) throw_error(NAME_CURRENT_COMP, tube);
-
-particle_getvar(_particle, a, &failure);
-if (failure) throw_error(NAME_CURRENT_COMP, a);
-
-particle_getvar(_particle, b, &failure);
-if (failure) throw_error(NAME_CURRENT_COMP, b);
-
-particle_getvar(_particle, tof, &failure);
-if (failure) throw_error(NAME_CURRENT_COMP, tof);
-
-last_time = now_in_sec_88MHz();
-offset_time.hi = 0;
-offset_time.lo = 0;
-repetition_time = efu_from_double(1/pulse_rate);
-
-printf("pulse rate set to %"PRIu32 " %"PRIu32"\n", repetition_time.hi, repetition_time.lo);
-
-miracles_readout_setPulseTime(miracles, last_time.hi, last_time.lo, 0, 0);
+  miracles_readout_setPulseTime(miracles, 0, 0, 0, 0);
+  miracles_readout_newPacket(miracles);
 
 %}
 
 TRACE
 %{
-delay();
-now_time = now_in_sec_88MHz();
-// offset_time = efu_add(offset_time, repetition_time);
-// now_time = efu_add(now_time, offset_time);
-
-// If the time difference exceeds the pulse-period, send the old packet, create a new one, and add the pulse times
-if (efu_compare(now_time, efu_add(last_time, repetition_time)) == 1) {
-  efu_time_t r = now_in_sec_88MHz();
-
-//  printf("Event_broadcaster=%s: Send packet, update time to (%"PRIu32", %"PRIu32", %"PRIu32", %"PRIu32")\n",
-//	       NAME_CURRENT_COMP, now_time.hi, now_time.lo, last_time.hi, last_time.lo);
   if (broadcast){
 	  // TODO combine these three into a single 'flush' call?
 	  miracles_readout_send(miracles);
 		miracles_readout_newPacket(miracles);
-	  miracles_readout_setPulseTime(miracles, now_time.hi, now_time.lo, last_time.hi, last_time.lo);
+	  miracles_readout_setPulseTime(miracles, 0, 0, 0, 0);
 	}
-  last_time = now_time;
-}
 
-int int_ring = particle_getvar_int(_particle, ring);
-int int_fen = particle_getvar_int(_particle, fen);
-int int_tube = particle_getvar_int(_particle, tube);
-int int_A = particle_getvar_int(_particle, a);
-int int_B = particle_getvar_int(_particle, b);
-
-double double_tof = particle_getvar(_particle, tof, 0);
-
-// add error checking of int -> uintN_t values?
-uint8_t RING = (uint8_t)int_ring;
-uint8_t FEN = (uint8_t)int_fen;
-uint8_t TUBE = (uint8_t)int_tube;
-uint16_t A = (uint16_t)int_A;
-uint16_t B = (uint16_t)int_B;
-
-
-efu_time_t efu_tof = efu_from_double(double_tof);
-efu_time_t event_time = efu_add(now_time, efu_tof);
+  uint8_t RING;
+  uint8_t FEN;
+  uint8_t tube_pair;
+  uint16_t A;
+  uint16_t B;
 
 // Send the event to the broadcaster to be accumulated and broadcast
   if (broadcast) {
-    // TODO add real calculations to map from simulation to digital identifiers here
-    RING = x*100;
-    FEN = y*100;
-    TUBE = z*100;
-    A = 9000;
-    B = 1000;
-    printf("\nFAKE READOUT - (RING %2u FEN %2u TUBE %2u) A %5u B %5u T_HI %10u T_LOW %10u\n", \
-           RING, FEN, TUBE, A, B, event_time.hi, event_time.lo);
-    miracles_readout_add(miracles, 2 * RING, FEN, event_time.hi, event_time.lo, TUBE, A, B);
+    // First calculate angle theta, then calculate the tube in ICD nomenclature
+    // where tubes increase clockwise
+    double r = sqrt(z*z + x*x);
+    double theta = acos(1.0*z/r);
+    int hetube = 47 - theta*47/3.1415926;
+
+    // Rings depend on hetube # and y-position (four quadrants)
+    if (hetube > 23) {
+      if (y >= 0) {
+        RING = 1;
+      } else {
+        RING = 3;
+      }
+    } else {
+      if (y >= 0) {
+        RING = 0;
+      } else {
+        RING = 2;
+      }
+    }
+
+    FEN = 0; // always for MIRACLES
+
+    tube_pair = (hetube/2)%11;
+
+    // Amplitudes are dependent on 'A' or 'B' end of a tube-pair and y value
+    A = 5000;
+    B = 5000;
+
+    double pos;
+    pos = 1.0 - (fabs(y)/0.150);
+    if (pos <= 0.5) {
+      B = 5000;
+      A = B * pos / (1 - pos);
+    } else {
+      A = 5000;
+      B = A *(1-pos)/pos;
+    }
+
+    //printf("\n NEUTRON at theta %f, hetube %u, tube_pair %u (x,y,z %f %f %f), t %.0f(us)\n", theta, hetube, tube_pair, x, y, z, t*1000000);
+    printf(" READOUT - RING %2u FEN %2u TUBE %2u (hetube %2u) - A %5u B %5u TOF %10u(ns)\n", \
+           RING, FEN, tube_pair, hetube, A, B, (int)(t * 1000000000));
+    miracles_readout_add(miracles, 2 * RING, FEN, 0, (int)(t * 1000000000), tube_pair, A, B);
   }
 %}
 
 FINALLY
 %{
-// perform any teardown of the stateful broadcaster
-if (broadcast) miracles_readout_send(miracles);
-miracles_readout_destroy(miracles);
+  // perform any teardown of the stateful broadcaster
+  if (broadcast) miracles_readout_send(miracles);
+    miracles_readout_destroy(miracles);
 %}
 
 MCDISPLAY
