@@ -246,11 +246,7 @@ double APY; // APY=0.94;
 
 USERVARS
 %{
-int charge_A;
-int charge_B;
-int RING;
-int FEN;
-int TUBE;
+  double t0; // time recorded at sample position
 %}
 
 
@@ -1117,6 +1113,8 @@ COMPONENT Sample = Isotropic_Sqw(
 AT (0,0,0.000) RELATIVE arm_guide_sample //PREVIOUS
 EXTEND
 %{
+  t0 = t;
+
   if ( !SCATTERED) ABSORB; //Virtual Perfect BeamStop
 %}
 
@@ -1370,7 +1368,7 @@ EXTEND %{
 
 
 // MJC added 'broadcaster' component proof of concept
-COMPONENT event_broadcaster = Event_broadcaster(ring="RING", fen="FEN", tube="TUBE", a="charge_A", b="charge_B", ip=sendTo, broadcast=sendPackets)
+COMPONENT event_broadcaster = Event_broadcaster(user1="t0", ip=sendTo, broadcast=sendPackets)
 // None of the AT ... matters as the broadcaster accepts all events which have made it this far through the instrument.
 AT(0,0,0) RELATIVE arm_sample
 

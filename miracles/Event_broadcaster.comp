@@ -1,16 +1,10 @@
 DEFINE COMPONENT Event_broadcaster
 DEFINITION PARAMETERS()
 SETTING PARAMETERS (
-string ring = 0,
-string fen = 0,
-string tube = 0,
-string a = 0,
-string b = 0,
-string tof = "t",
 string ip = 0,
 int port = 9000,
 int broadcast = 1,
-pulse_rate = 14
+string user1=""
 )
 OUTPUT PARAMETERS ()
 DEPENDENCY "-I src -L. -lwrapper"
@@ -34,9 +28,81 @@ SHARE
     exit(-1);
   }
 
-  int particle_getvar_int(_class_particle* p, char* name){
-      double bits = particle_getvar(p, name, 0);
-      return *(int*)&bits;
+  //
+  // Functions for calculating digital identifiers below
+  //
+
+  // degrees to radians
+  #define D2R(deg) (deg * 2 * 3.1415926536/360.0)
+
+  // HeTube in ICD nomenclature where tubes increase clockwise
+  uint8_t getTubeId(double x, double y, double z) {
+    double thmin = D2R(  9.48);
+    double thmax = D2R(165.00);
+    double tubearc = D2R(3.24);
+    //printf("thmin %f, thmax %f, arc %f\n", thmin, thmax, tubearc);
+
+    double r = sqrt(z*z + x*x);
+    double theta = acos(1.0*z/r);
+    uint8_t hetube = 47 - (theta - thmin)/tubearc;
+    //printf("theta: %f, hetube %u\n", theta, hetube);
+
+    if ((theta < thmin) || (theta > thmax)) {
+      return 255;
+    } else {
+      return hetube;
+    }
+  }
+
+
+  // Rings depend on hetube # and y-position (four quadrants)
+  uint8_t getRingId(uint8_t hetube, double y) {
+    uint8_t RING;
+    if (hetube > 23) {
+      if (y >= 0) {
+        RING = 1;
+      } else {
+        RING = 3;
+      }
+    } else {
+      if (y >= 0) {
+        RING = 0;
+      } else {
+        RING = 2;
+      }
+    }
+    return RING;
+  }
+
+
+  // Amplitudes are dependent on 'A' or 'B' end of a tube-pair and y value
+  // distances estimated from technical drawing ESSB-MRCL-SS-1500[3].PDF
+  // AorB: 0: A-tube, 1: B-tube
+  //
+  // TODO this is still not correct and we're using hardcoded values
+  // also (guessing) tubepair may be uptide down for lower banks and
+  // this A anb B might be swapped.
+  void getAmplitudes(double y, int AorB, uint16_t * A, uint16_t * B) {
+    double ymin =       0.133; // mm
+    double tubeheight = 0.150; // mm
+
+    if ((fabs(y) < ymin) || (fabs(y) > (ymin + tubeheight))) {
+      //printf("y-value %f outside tube\n", y);
+      *A = 0;
+      *B = 0;
+      return;
+    }
+
+    // for now hardcode A and B to the upper 1/8'th of a tube
+    // TODO needs fixing (maybe)
+    if (AorB == 0 ) { // A-end of tube
+      *A = 1000;
+      *B = 7000;
+    } else { // B-end of tube
+      *A = 7000;
+      *B = 1000;
+    }
+    return;
   }
 
 %}
@@ -67,6 +133,15 @@ INITIALIZE
 
 TRACE
 %{
+  uint8_t RING;
+  uint8_t FEN=0;
+  uint8_t TubePair;
+  uint16_t A;
+  uint16_t B;
+  double TOF;
+  double t0;
+  int fail;
+
   if (broadcast){
 	  // TODO combine these three into a single 'flush' call?
 	  miracles_readout_send(miracles);
@@ -74,61 +149,32 @@ TRACE
 	  miracles_readout_setPulseTime(miracles, 0, 0, 0, 0);
 	}
 
-  uint8_t RING;
-  uint8_t FEN;
-  uint8_t tube_pair;
-  uint16_t A;
-  uint16_t B;
+  t0 = particle_getvar(_particle, user1, &fail);
 
-// Send the event to the broadcaster to be accumulated and broadcast
+
+  // Send the event to the broadcaster to be accumulated and broadcast
   if (broadcast) {
-    // First calculate angle theta, then calculate the tube in ICD nomenclature
-    // where tubes increase clockwise
-    double r = sqrt(z*z + x*x);
-    double theta = acos(1.0*z/r);
-    int hetube = 47 - theta*47/3.1415926;
+    uint8_t hetube = getTubeId(x, y, z);
 
-    // Rings depend on hetube # and y-position (four quadrants)
-    if (hetube > 23) {
-      if (y >= 0) {
-        RING = 1;
-      } else {
-        RING = 3;
-      }
-    } else {
-      if (y >= 0) {
-        RING = 0;
-      } else {
-        RING = 2;
-      }
-    }
+    RING = getRingId(hetube, y);
 
-    FEN = 0; // always for MIRACLES
-
-    tube_pair = (hetube % 24)/2;
+    TubePair = (hetube % 24)/2;
 
     if ((RING == 2) || (RING == 3)) {
       hetube += 48;
     }
 
-    // Amplitudes are dependent on 'A' or 'B' end of a tube-pair and y value
-    A = 5000;
-    B = 5000;
+    getAmplitudes(y, hetube % 2, &A, &B);
 
-    double pos;
-    pos = 1.0 - (fabs(y)/0.150);
-    if (pos <= 0.5) {
-      B = 5000;
-      A = B * pos / (1 - pos);
-    } else {
-      A = 5000;
-      B = A *(1-pos)/pos;
+    if (!((A == 0) && (B == 0))) {
+      TOF = (int)(1000000000 * (t - t0));
+
+      //printf("\n NEUTRON at theta %f, hetube %u, tube_pair %u (x,y,z %f %f %f), t %.0f(us)\n", theta, hetube, tube_pair, x, y, z, t*1000000);
+      printf("READOUT - RING %u, FEN %u, TUBE %2u (hetube %2u) - A %5u, B %5u, TOF %10u (ns)\n", \
+             RING, FEN, TubePair, hetube, A, B, (int)TOF);
+      miracles_readout_add(miracles, 2 * RING, FEN, 0, (int)TOF, TubePair, A, B);
     }
 
-    //printf("\n NEUTRON at theta %f, hetube %u, tube_pair %u (x,y,z %f %f %f), t %.0f(us)\n", theta, hetube, tube_pair, x, y, z, t*1000000);
-    printf("READOUT - RING %u, FEN %u, TUBE %2u (hetube %2u) - A %5u, B %5u, TOF %10u (ns)\n", \
-           RING, FEN, tube_pair, hetube, A, B, (int)(t * 1000000000));
-    miracles_readout_add(miracles, 2 * RING, FEN, 0, (int)(t * 1000000000), tube_pair, A, B);
   }
 %}
 
