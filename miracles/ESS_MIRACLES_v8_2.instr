@@ -273,8 +273,10 @@ chopper[4][4]=CH4_freqq; // FOL
 //
 ROT1=ANA_POS;
 dROT=ANA_SEC;
-#DSPREAD=0.00035; // Original value
+
+//DSPREAD=0.00035; // Original value
 DSPREAD=0.0035; // for faster simulation
+
 //
 APX=dROT*DEG2RAD*ANA_RAD*0.9; // factor 0.9 just to avoid overlapping of plates
 APY=0.94;                    // fixed value in vertical
