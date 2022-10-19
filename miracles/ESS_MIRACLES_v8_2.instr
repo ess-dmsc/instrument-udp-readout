@@ -1,6 +1,4 @@
 
-
-
 /*****************************************************************************
 *         McStas instrument definition URL=http://www.mcstas.org
 *
@@ -18,15 +16,14 @@
 * Secondary spectrometer based on BASIS instrument mcstas code.
 *******************************************************************************/
 
-
-
-
-DEFINE INSTRUMENT ESS_MIRACLES( SRC_MIN=  1.27, SRC_MAX= 51.27   , CHO_PW1= 14.00,
-                                CHO_PW2=-14.00, CHO_PSE= 14.00   , CHO_FOL= 14.00,
+DEFINE INSTRUMENT ESS_MIRACLES(
+        SRC_MIN=  1.27, SRC_MAX= 51.27,  CHO_PW1= 14.00,
+        CHO_PW2=-14.00, CHO_PSE= 14.00,  CHO_FOL= 14.00,
 				//string RAD_COL= "OFF",
-                                ANA_POS= 77.5  , ANA_SEC= 25.0   , ANA_RAD=  2.5,
-			        ANA_ROT= 0 , ANA_ELE=  0.074 , ANA_CUR=  2.5,
-				string REPORT = "YES" , int sendPackets=0   )
+        ANA_POS= 77.5,  ANA_SEC= 25.0,   ANA_RAD=  2.5,
+			  ANA_ROT=  0,    ANA_ELE=  0.074, ANA_CUR=  2.5,
+				string REPORT = "YES",
+        int sendPackets=0)
 
 
 //
@@ -69,93 +66,97 @@ DEFINE INSTRUMENT ESS_MIRACLES( SRC_MIN=  1.27, SRC_MAX= 51.27   , CHO_PW1= 14.0
 
 DECLARE
 %{
-char sendTo[256]; // ip address for udp data transmission
-double rotinstrument=-1.0;
+  char sendTo[256]; // ip address for udp data transmission
+  double rotinstrument=-1.0;
+
+  double lambdacentral=6.27; // unused,original in Miracles Primary (but chop'd to 3A anyway!)
+  //double lambdacentral=3.27; // to compare with Basis (do this from GUI)
 
 
 
-double lambdacentral=6.27; // unused,original in Miracles Primary (but chop'd to 3A anyway!)
-//double lambdacentral=3.27; // to compare with Basis (do this from GUI)
+  // declaration of variables buffering instrument parameters, recycle
+  // do not initiallize
+  double CH1_freqq; // for CH1_FQ  CHO_PW1
+  double CH2_freqq; // for CH2_FQ  CHO_PW2
+  double CH3_freqq; // for CH3_FQ  CHO_PSE
+  double CH4_freqq; // for CH4_FQ  CHO_FOL
+  //
+
+  //
+  double ROT1;      // for ANA_POS
+  double dROT;      // for ANA_SEC
+  double DSPREAD;   //
+
+  // NOTE: ROT1 can be set to either 90 or 90-(dROT/2)
 
 
+  // declaration of Analyzer Plate (X) and (Y) dimensions [m]
+  // initiallization must be done later
+  double APX; // APX=dROT*DEG2RAD*ANA_RAD*0.9;
+  double APY; // APY=0.94;
 
-// declaration of variables buffering instrument parameters, recycle
-// do not initiallize
-double CH1_freqq; // for CH1_FQ  CHO_PW1
-double CH2_freqq; // for CH2_FQ  CHO_PW2
-double CH3_freqq; // for CH3_FQ  CHO_PSE
-double CH4_freqq; // for CH4_FQ  CHO_FOL
-//
+  //===========================================================================================
+  //___________________________________________________________________________________________
 
-//
-double ROT1;      // for ANA_POS
-double dROT;      // for ANA_SEC
-double DSPREAD;   //
+  //===========================================================================================
+  // GENERAL GUIDE PARAMETERS
+  //___________________________________________________________________________________________
+  const double gravityeffect = -9.81; //[m/s^2] 0-value disables gravity
+  const double dist_source_guide = 1.9; //Distance from source to guide [m].
+  const double dist_guide_sample = 0.300; //Distance from the end of the guide to the sample position [m]
+  double gapguides = 1e-3; //Gap between guides [m]
+  double gapchoppers = 1E-2; //Gap between choppers [m]
+  double gapchopperguide = 1E-2; //Gap between guide and chopper [m]
+  double guide[19][10] = { //Geometric guide parameters
+    //w1[m], h1[m], w2[m], h2[m], l:individual piece[m], x[m], y[m], dist[m], curv[m], N
+    {0.0662 , 0.0482 , 0.0652 , 0.0522 , 0.5 ,  0.0, 0.0, 0.0, 0.0 , 1 }, //guide G1a
+    {0.0652 , 0.0522 , 0.0642 , 0.0558 , 0.5 ,  0.0, 0.0, 0.0, 0.0 , 1 }, //guide G1b
+    {0.0642 , 0.0558 , 0.0632 , 0.0591 , 0.5 ,  0.0, 0.0, 0.0, 0.0 , 1 }, //guide G1c
+    {0.0632 , 0.0591 , 0.0612 , 0.0651 , 1.0 ,  0.0, 0.0, 0.0, 0.0 , 1 }, //guide G2a
+    {0.0612 , 0.0651 , 0.0592 , 0.0703 , 0.98 , 0.0, 0.0, 0.0, 0.0 , 1 }, //guide G2b -->END of NBOA
+    {0.0592 , 0.0703 , 0.0546 , 0.0805 , 2.25 , 0.0, 0.0, 0.0, 0.0 , 1 }, //guide G3
+    {0.0546 , 0.0805 , 0.0582 , 0.083  , 0.5 ,  0.0, 0.0, 0.0, 0.0 , 1 }, //guide G4 - PWD-PS
+    {0.0582 , 0.083  , 0.08   , 0.10   , 3.0 ,  0.0, 0.0, 0.0, 0.0 , 1 }, //guide G5
+    {0.080  , 0.10   , 0.08   , 0.10   , 1.0 ,  0.0, 0.0, 0.0, 2025, 36}, //guide G6 - curved
+    {0.080  , 0.10   , 0.105  , 0.105  , 7.2 ,  0.0, 0.0, 0.0, 0.0 , 1 }, //guide G7
+    {0.105  , 0.105  , 0.13   , 0.11   , 7.8 ,  0.0, 0.0, 0.0, 0.0 , 1 }, //guide G8
+    {0.13   , 0.11   , 0.13   , 0.11   , 19 ,   0.0, 0.0, 0.0, 0.0 , 1 }, //guide G9a - long st
+    {0.13   , 0.11   , 0.13   , 0.11   , 64.1,  0.0, 0.0, 0.0, 0.0 , 1 }, //guide G9b - long st
+    {0.13   , 0.11   , 0.113  , 0.10   , 8.0 ,  0.0, 0.0, 0.0, 0.0 , 1 }, //guide G10
+    {0.113  , 0.10   , 0.0961 , 0.083  , 5.0 ,  0.0, 0.0, 0.0, 0.0 , 1 }, //guide G11
+    {0.0961 , 0.083  , 0.0777 , 0.0689 , 1.5 ,  0.0, 0.0, 0.0, 0.0 , 1 }, //guide G12
+    {0.0777 , 0.0689 , 0.061  , 0.0549 , 1.0 ,  0.0, 0.0, 0.0, 0.0 , 1 }, //guide G13
+    {0.061  , 0.0549 , 0.050  , 0.0454 , 0.5 ,  0.0, 0.0, 0.0, 0.0 , 1 }, //guide G14
+    {0.050  , 0.0454 , 0.0217 , 0.0199 , 0.8 ,  0.0, 0.0, 0.0, 0.0 , 1 }, //guide G15
+  };
 
-// NOTE: ROT1 can be set to either 90 or 90-(dROT/2)
+  double m[19][4] = { //Coating guide parameters.
+    //mleft, mright, mtop, mbottom
+    {4.0, 4.0, 4.0, 4.0}, //guide G1a
+    {4.0, 4.0, 4.0, 4.0}, //guide G1b
+    {4.0, 4.0, 4.0, 4.0}, //guide G1c
+    {4.0, 4.0, 4.0, 4.0}, //guide G2a
+    {4.0, 4.0, 4.0, 4.0}, //guide G2b --> END of NBOA
+    {4.0, 4.0, 4.0, 4.0}, //guide G3
+    {2.0, 2.0, 2.5, 2.5}, //guide G4 -PWD-PS
+    {3.0, 3.0, 2.5, 2.5}, //guide G5
+    {2.0, 2.5, 2.0, 2.0}, //guide G6 - curved
+    {1.5, 1.5, 2.0, 2.0}, //guide G7
+    {1.5, 1.5, 2.0, 2.0}, //guide G8
+    {1.5, 1.5, 1.5, 1.5}, //guide G9a - long straight
+    {1.5, 1.5, 1.5, 1.5}, //guide G9b - long straight
+    {2.0, 2.0, 2.0, 2.0}, //guide G10
+    {2.0, 2.0, 2.0, 2.0}, //guide G11
+    {2.5, 2.5, 2.5, 2.5}, //guide G12
+    {3.0, 3.0, 3.0, 3.0}, //guide G13
+    {4.0, 4.0, 4.0, 4.0}, //guide G14
+    {5.0, 5.0, 5.0, 5.0}, //guide G15
+  };
 
 
-// declaration of Analyzer Plate (X) and (Y) dimensions [m]
-// initiallization must be done later
-double APX; // APX=dROT*DEG2RAD*ANA_RAD*0.9;
-double APY; // APY=0.94;
-
-
-
-//GENERAL GUIDE PARAMETERS
-    const double gravityeffect = -9.81; //[m/s^2] 0-value disables gravity
-    const double dist_source_guide = 1.9; //Distance from source to guide [m].
-    const double dist_guide_sample = 0.300; //Distance from the end of the guide to the sample position [m]
-    double gapguides = 1e-3; //Gap between guides [m]
-    double gapchoppers = 1E-2; //Gap between choppers [m]
-    double gapchopperguide = 1E-2; //Gap between guide and chopper [m]
-    double guide[19][10] = { //Geometric guide parameters
-       //w1[m], h1[m], w2[m], h2[m], l:individual piece[m], x[m], y[m], dist[m], curv[m], N
-       {0.0662 , 0.0482 , 0.0652 , 0.0522 , 0.5 ,  0.0, 0.0, 0.0, 0.0 , 1 }, //guide G1a
-       {0.0652 , 0.0522 , 0.0642 , 0.0558 , 0.5 ,  0.0, 0.0, 0.0, 0.0 , 1 }, //guide G1b
-       {0.0642 , 0.0558 , 0.0632 , 0.0591 , 0.5 ,  0.0, 0.0, 0.0, 0.0 , 1 }, //guide G1c
-       {0.0632 , 0.0591 , 0.0612 , 0.0651 , 1.0 ,  0.0, 0.0, 0.0, 0.0 , 1 }, //guide G2a
-       {0.0612 , 0.0651 , 0.0592 , 0.0703 , 0.98 , 0.0, 0.0, 0.0, 0.0 , 1 }, //guide G2b -->END of NBOA
-       {0.0592 , 0.0703 , 0.0546 , 0.0805 , 2.25 , 0.0, 0.0, 0.0, 0.0 , 1 }, //guide G3
-       {0.0546 , 0.0805 , 0.0582 , 0.083  , 0.5 ,  0.0, 0.0, 0.0, 0.0 , 1 }, //guide G4 - PWD-PS
-       {0.0582 , 0.083  , 0.08   , 0.10   , 3.0 ,  0.0, 0.0, 0.0, 0.0 , 1 }, //guide G5
-       {0.080  , 0.10   , 0.08   , 0.10   , 1.0 ,  0.0, 0.0, 0.0, 2025, 36}, //guide G6 - curved
-       {0.080  , 0.10   , 0.105  , 0.105  , 7.2 ,  0.0, 0.0, 0.0, 0.0 , 1 }, //guide G7
-       {0.105  , 0.105  , 0.13   , 0.11   , 7.8 ,  0.0, 0.0, 0.0, 0.0 , 1 }, //guide G8
-       {0.13   , 0.11   , 0.13   , 0.11   , 19 ,   0.0, 0.0, 0.0, 0.0 , 1 }, //guide G9a - long st
-       {0.13   , 0.11   , 0.13   , 0.11   , 64.1,  0.0, 0.0, 0.0, 0.0 , 1 }, //guide G9b - long st
-       {0.13   , 0.11   , 0.113  , 0.10   , 8.0 ,  0.0, 0.0, 0.0, 0.0 , 1 }, //guide G10
-       {0.113  , 0.10   , 0.0961 , 0.083  , 5.0 ,  0.0, 0.0, 0.0, 0.0 , 1 }, //guide G11
-       {0.0961 , 0.083  , 0.0777 , 0.0689 , 1.5 ,  0.0, 0.0, 0.0, 0.0 , 1 }, //guide G12
-       {0.0777 , 0.0689 , 0.061  , 0.0549 , 1.0 ,  0.0, 0.0, 0.0, 0.0 , 1 }, //guide G13
-       {0.061  , 0.0549 , 0.050  , 0.0454 , 0.5 ,  0.0, 0.0, 0.0, 0.0 , 1 }, //guide G14
-       {0.050  , 0.0454 , 0.0217 , 0.0199 , 0.8 ,  0.0, 0.0, 0.0, 0.0 , 1 }, //guide G15
-    };
-
-    double m[19][4] = { //Coating guide parameters.
-       //mleft, mright, mtop, mbottom
-       {4.0, 4.0, 4.0, 4.0}, //guide G1a
-       {4.0, 4.0, 4.0, 4.0}, //guide G1b
-       {4.0, 4.0, 4.0, 4.0}, //guide G1c
-       {4.0, 4.0, 4.0, 4.0}, //guide G2a
-       {4.0, 4.0, 4.0, 4.0}, //guide G2b --> END of NBOA
-       {4.0, 4.0, 4.0, 4.0}, //guide G3
-       {2.0, 2.0, 2.5, 2.5}, //guide G4 -PWD-PS
-       {3.0, 3.0, 2.5, 2.5}, //guide G5
-       {2.0, 2.5, 2.0, 2.0}, //guide G6 - curved
-       {1.5, 1.5, 2.0, 2.0}, //guide G7
-       {1.5, 1.5, 2.0, 2.0}, //guide G8
-       {1.5, 1.5, 1.5, 1.5}, //guide G9a - long straight
-       {1.5, 1.5, 1.5, 1.5}, //guide G9b - long straight
-       {2.0, 2.0, 2.0, 2.0}, //guide G10
-       {2.0, 2.0, 2.0, 2.0}, //guide G11
-       {2.5, 2.5, 2.5, 2.5}, //guide G12
-       {3.0, 3.0, 3.0, 3.0}, //guide G13
-       {4.0, 4.0, 4.0, 4.0}, //guide G14
-       {5.0, 5.0, 5.0, 5.0}, //guide G15
-    };
-
-//Choppers
+//===========================================================================================
+// Choppers
+//___________________________________________________________________________________________
 /*
 // example of BASIS chopper with delay as function of lam
 //COMPONENT Chopper1 = DiskChopper(radius=0.254, theta_0=ch1_open, nu=Omega1, nslit=1, delay=252.78*6.98319*Lam*1e-6,yheight=0.128)
@@ -163,85 +164,72 @@ double APY; // APY=0.94;
 //ROTATED (0, (0.04/RadCurv)*RAD2DEG, 0) RELATIVE Gap3_start
 */
 
+  // centered in 6 A at 14 Hz   CH1_freq=14 and multiples
+  // chopper parameters 2D array declaration and initiallization
+  // value reassignment invalid here
+  // must be done in the declaration zone
+  double chopper[6][10] = { //Chopper cascade parameters
+    //x[m], y[m], dist[m], radius[m], nu[Hz], nslit, theta_0[Âº], yheight[m], phase[Âº], delay[s]
+    {0.00, 0.00, 0.00, 0.35,  14, 1.0, 12,  0.10, 0.0, 0.0139}, //CH1a --> PWD1
+    {0.00, 0.00, 0.00, 0.35, -14, 1.0, 12,  0.10, 0.0, 0.0139}, //CH1b --> PWD2
+    {0.00, 0.00, 0.00, 0.35,  14, 1.0, 18,  0.10, 0.0, 0.0147}, //CH2  --> PS
+    {0.00, 0.00, 0.00, 0.35,  14, 1.0, 25,  0.15, 0.0, 0.0200}, //CH3a --> FO1 at 11.25 m (not used)
+    {0.00, 0.00, 0.00, 0.35,  14, 1.0, 112, 0.15, 0.0, 0.0880}, //CH3b --> FOtot at 54.5 m
+    {0.00, 0.00, 0.00, 0.35,  14, 1.0, 176, 0.15, 0.0, 0.1340}, //CH4  --> FO2 at 81.25 m (not used)
+  };
 
 
+  //===========================================================================================
 
-//-------------------------------------------------------------------
-//-------------------------------------------------------------------
+  //Estimation of the phase of the chopper.
 
-    // centered in 6 A at 14 Hz   CH1_freq=14 and multiples
-    // chopper parameters 2D array declaration and initiallization
-    // value reassignment invalid here
-    // must be done in the declaration zone
-    double chopper[6][10] = { //Chopper cascade parameters
-       //x[m], y[m], dist[m], radius[m], nu[Hz], nslit, theta_0[Âº], yheight[m], phase[Âº], delay[s]
-       {0.00, 0.00, 0.00, 0.35,  14, 1.0, 12,  0.10, 0.0, 0.0139}, //CH1a --> PWD1
-       {0.00, 0.00, 0.00, 0.35, -14, 1.0, 12,  0.10, 0.0, 0.0139}, //CH1b --> PWD2
-       {0.00, 0.00, 0.00, 0.35,  14, 1.0, 18,  0.10, 0.0, 0.0147}, //CH2  --> PS
-       {0.00, 0.00, 0.00, 0.35,  14, 1.0, 25,  0.15, 0.0, 0.0200}, //CH3a --> FO1 at 11.25 m (not used)
-       {0.00, 0.00, 0.00, 0.35,  14, 1.0, 112, 0.15, 0.0, 0.0880}, //CH3b --> FOtot at 54.5 m
-       {0.00, 0.00, 0.00, 0.35,  14, 1.0, 176, 0.15, 0.0, 0.1340}, //CH4  --> FO2 at 81.25 m (not used)
-    };
+  //Calculates the time elapsed by the neutron in the secondary.
+  double t2( double L2, double da, double theta )
+  {
+    return 2*MNEUTRON/(HBAR*2*PI) * L2*(da*1e-10)*sin(DEG2RAD*theta); //seconds
+  }
 
+  //Calculates the energy via TOF.
+  double TOF2Efunc( double L, double t)
+  {
+  	double J2meV = 1.0/(1.602176462e-19) * 1e3 ;
+  	return 1.0/2.0*MNEUTRON * pow( L / t, 2) * J2meV;
+  }
 
-//-------------------------------------------------------------------
-//-------------------------------------------------------------------
+  //Calculates the energy exchange via the TOF (see OSIRIS user guide).
+  double deltaE( double L1, double L2, double t, double da, double theta)
+  {
+  	double T2 = t2(L2,da,theta) ;
+  	double ei = TOF2Efunc( L1,t-T2 );
+  	double ef = TOF2Efunc( L2,T2 );
+  	return ei-ef; //meV
+  }
 
+  // Routine to get the core in use
+  int getCore2()
+  {
+  	int rank = 0;
+  	#ifdef USE_MPI
+  	MPI_Comm_rank(MPI_COMM_WORLD,&rank);
+  	#endif
+  	return rank;
+  }
 
-
-    //Estimation of the phase of the chopper.
-
-    //Calculates the time elapsed by the neutron in the secondary.
-    double t2( double L2, double da, double theta )
-    {
-        return 2*MNEUTRON/(HBAR*2*PI) * L2*(da*1e-10)*sin(DEG2RAD*theta); //seconds
-    }
-
-
-    //Calculates the energy via TOF.
-    double TOF2Efunc( double L, double t)
-    {
-	double J2meV = 1.0/(1.602176462e-19) * 1e3 ;
-	return 1.0/2.0*MNEUTRON * pow( L / t, 2) * J2meV;
-    }
-
-    //Calculates the energy exchange via the TOF (see OSIRIS user guide).
-    double deltaE( double L1, double L2, double t, double da, double theta)
-    {
-	double T2 = t2(L2,da,theta) ;
-	double ei = TOF2Efunc( L1,t-T2 );
-	double ef = TOF2Efunc( L2,T2 );
-	return ei-ef; //meV
-    }
-
-    // Routine to get the core in use
-    int getCore2()
-    {
-    	int rank = 0;
-    	#ifdef USE_MPI
-    	MPI_Comm_rank(MPI_COMM_WORLD,&rank);
-    	#endif
-    	return rank;
-    }
-
-
-   // NEW: variables for the analyzer
-   double q_si111 = 2.003886241; //Q [AA-1] Magnitude of scatt. vector(dafault though)
-   char myfilename_7 [128];
-   char myfilename_8 [128];
-   char myfilename_9 [128];
-   char myfilename_10 [128];
-   char myfilename_11 [128];
-   char myfilename_12 [128];
-   char myfilename_13 [128];
-   char myfilename_14 [128];
-   char myfilename_15 [128];
-   char myfilename_16 [128];
-   char myfilename_17 [128];
-   char myfilename_18 [128];
-   char myfilename_19 [128];
-
-
+  // NEW: variables for the analyzer
+  double q_si111 = 2.003886241; //Q [AA-1] Magnitude of scatt. vector(dafault though)
+  char myfilename_7 [128];
+  char myfilename_8 [128];
+  char myfilename_9 [128];
+  char myfilename_10 [128];
+  char myfilename_11 [128];
+  char myfilename_12 [128];
+  char myfilename_13 [128];
+  char myfilename_14 [128];
+  char myfilename_15 [128];
+  char myfilename_16 [128];
+  char myfilename_17 [128];
+  char myfilename_18 [128];
+  char myfilename_19 [128];
 %}
 
 
@@ -437,14 +425,12 @@ COMPONENT Ldiv_NBOA = DivLambda_monitor(nL=80, nh=80, filename="Ldiv_NBOA.div",
 AT (0, 0, 0.001) RELATIVE PREVIOUS
 */
 
-/////////////////////////////////////////////////////////////////////////////////////////////
-//___________________________________________________________________________________________
-
+//===========================================================================================
 // PULSE SHAPING CHOPPER MODULE
-////////////////////////////////////////////////////////////////////////////////////////////
-
-// Pulse shaping chopper(s) (PWD) //
-/* We use the DiskChopper comp (thus, 2 for two types of slits), the MultiDiskChopper contributed comp can be also an option*/
+//___________________________________________________________________________________________
+// Pulse shaping chopper(s) (PWD)
+// We use the DiskChopper comp (thus, 2 for two types of slits), the MultiDiskChopper
+// contributed comp can be also an option
 
 COMPONENT arm_chopper1=Arm()
         AT (0.0, 0.0,guide[5][4]+gapguides+gapchopperguide) RELATIVE G3
@@ -462,10 +448,11 @@ COMPONENT PWD2 = DiskChopper(
         delay = chopper[1][9])
         AT (0.0, 0.0, gapchoppers) RELATIVE PWD1
         GROUP CH1s
-/*
-COMPONENT arm_choppers2 = Arm() //Required for the GROUP of choppers.
-        AT (0.0, 0.0, gapchoppers) RELATIVE PREVIOUS
-*/
+
+//COMPONENT arm_choppers2 = Arm() //Required for the GROUP of choppers.
+//        AT (0.0, 0.0, gapchoppers) RELATIVE PREVIOUS
+
+//===========================================================================================
 
 // Detectors after PWD //
 

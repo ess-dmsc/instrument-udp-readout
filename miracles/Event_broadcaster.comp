@@ -167,7 +167,7 @@ TRACE
     getAmplitudes(y, hetube % 2, &A, &B);
 
     if (!((A == 0) && (B == 0))) {
-      TOF = (int)(1000000000 * (t - t0));
+      TOF = (int)(1000000000 * t);
 
       //printf("\n NEUTRON at theta %f, hetube %u, tube_pair %u (x,y,z %f %f %f), t %.0f(us)\n", theta, hetube, tube_pair, x, y, z, t*1000000);
       printf("READOUT - RING %u, FEN %u, TUBE %2u (hetube %2u) - A %5u, B %5u, TOF %10u (ns)\n", \
