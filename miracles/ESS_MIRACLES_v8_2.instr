@@ -90,6 +90,7 @@ double CH4_freqq; // for CH4_FQ  CHO_FOL
 //
 double ROT1;      // for ANA_POS
 double dROT;      // for ANA_SEC
+double DSPREAD;   //
 
 // NOTE: ROT1 can be set to either 90 or 90-(dROT/2)
 
@@ -272,6 +273,8 @@ chopper[4][4]=CH4_freqq; // FOL
 //
 ROT1=ANA_POS;
 dROT=ANA_SEC;
+#DSPREAD=0.00035; // Original value
+DSPREAD=0.0035; // for faster simulation
 //
 APX=dROT*DEG2RAD*ANA_RAD*0.9; // factor 0.9 just to avoid overlapping of plates
 APY=0.94;                    // fixed value in vertical
@@ -1289,8 +1292,8 @@ ROTATED (0,0,0) RELATIVE An3_rot_axis
 
 COMPONENT An1 = Spherical_Backscattering_Analyser(
   xmin=-APX/2, xmax=APX/2, ymin=-APY/2, ymax=APY/2, // MIRACLES
-  //radius=ANA_RAD, Q = q_si111, mosaic=0.0, dspread=0.00035, R0=1, debug=0) //radius
-  radius=ANA_CUR, Q = q_si111, mosaic=0.0, dspread=0.00035, R0=1, debug=0)//curvature
+  //radius=ANA_RAD, Q = q_si111, mosaic=0.0, dspread=DSPREAD, R0=1, debug=0) //radius
+  radius=ANA_CUR, Q = q_si111, mosaic=0.0, dspread=DSPREAD, R0=1, debug=0)//curvature
   //AT (0, 0, 0) RELATIVE An1_rot_axis2        // <-----------ORIG
   AT (0, ANA_ELE*1, 0) RELATIVE An1_rot_axis2 // <-----------ELEVATING example
 GROUP ANALYZERS
@@ -1298,14 +1301,14 @@ GROUP ANALYZERS
 
 COMPONENT An2 = Spherical_Backscattering_Analyser(
   xmin=-APX/2, xmax=APX/2, ymin=-APY/2, ymax=APY/2, // MIRACLES
-  radius=ANA_RAD, Q = q_si111, mosaic=0.0, dspread=0.00035, R0=1, debug=0)
+  radius=ANA_RAD, Q = q_si111, mosaic=0.0, dspread=DSPREAD, R0=1, debug=0)
   AT (0, 0.00, 0) RELATIVE An2_rot_axis2
 GROUP ANALYZERS
 
 
 COMPONENT An3 = Spherical_Backscattering_Analyser(
   xmin=-APX/2, xmax=APX/2, ymin=-APY/2, ymax=APY/2, // MIRACLES
-  radius=ANA_RAD, Q = q_si111, mosaic=0.0, dspread=0.00035, R0=1, debug=0)
+  radius=ANA_RAD, Q = q_si111, mosaic=0.0, dspread=DSPREAD, R0=1, debug=0)
   AT (0, 0, 0) RELATIVE An3_rot_axis2
 GROUP ANALYZERS
 
@@ -1326,8 +1329,6 @@ COMPONENT Det1_Lam_variable_range = L_monitor(
     filename="Det1_Lambda", restore_neutron = 1, xwidth = 0.05,
     yheight = 0.2,  Lmin = 6.2, Lmax = 6.3, nL = 1000)
   AT (0, 0, 2.2302) RELATIVE ArmForDet1
-
-
 //-------------------------------------------------------
 
 
@@ -1365,7 +1366,6 @@ EXTEND %{
   //printf("\n xyz %f, %f, %f\n", x, y, z);
 %}
 //
-
 
 // MJC added 'broadcaster' component proof of concept
 COMPONENT event_broadcaster = Event_broadcaster(user1="t0", ip=sendTo, broadcast=sendPackets)
