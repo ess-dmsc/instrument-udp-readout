@@ -66,6 +66,7 @@ DEFINE INSTRUMENT ESS_MIRACLES(
 
 DECLARE
 %{
+  double n_theta; // For when condition on analyzers
   char sendTo[256]; // ip address for udp data transmission
   double rotinstrument=-1.0;
 
@@ -132,25 +133,25 @@ DECLARE
 
   double m[19][4] = { //Coating guide parameters.
     //mleft, mright, mtop, mbottom
-    {4.0, 4.0, 4.0, 4.0}, //guide G1a
-    {4.0, 4.0, 4.0, 4.0}, //guide G1b
-    {4.0, 4.0, 4.0, 4.0}, //guide G1c
-    {4.0, 4.0, 4.0, 4.0}, //guide G2a
-    {4.0, 4.0, 4.0, 4.0}, //guide G2b --> END of NBOA
-    {4.0, 4.0, 4.0, 4.0}, //guide G3
-    {2.0, 2.0, 2.5, 2.5}, //guide G4 -PWD-PS
-    {3.0, 3.0, 2.5, 2.5}, //guide G5
-    {2.0, 2.5, 2.0, 2.0}, //guide G6 - curved
-    {1.5, 1.5, 2.0, 2.0}, //guide G7
-    {1.5, 1.5, 2.0, 2.0}, //guide G8
-    {1.5, 1.5, 1.5, 1.5}, //guide G9a - long straight
-    {1.5, 1.5, 1.5, 1.5}, //guide G9b - long straight
-    {2.0, 2.0, 2.0, 2.0}, //guide G10
-    {2.0, 2.0, 2.0, 2.0}, //guide G11
-    {2.5, 2.5, 2.5, 2.5}, //guide G12
-    {3.0, 3.0, 3.0, 3.0}, //guide G13
-    {4.0, 4.0, 4.0, 4.0}, //guide G14
-    {5.0, 5.0, 5.0, 5.0}, //guide G15
+    {4.0, 4.0, 4.0, 4.0}, // guide G1a
+    {4.0, 4.0, 4.0, 4.0}, // guide G1b
+    {4.0, 4.0, 4.0, 4.0}, // guide G1c
+    {4.0, 4.0, 4.0, 4.0}, // guide G2a
+    {4.0, 4.0, 4.0, 4.0}, // guide G2b --> END of NBOA
+    {4.0, 4.0, 4.0, 4.0}, // guide G3
+    {2.0, 2.0, 2.5, 2.5}, // guide G4 -PWD-PS
+    {3.0, 3.0, 2.5, 2.5}, // guide G5
+    {2.0, 2.5, 2.0, 2.0}, // guide G6 - curved
+    {1.5, 1.5, 2.0, 2.0}, // guide G7
+    {1.5, 1.5, 2.0, 2.0}, // guide G8
+    {1.5, 1.5, 1.5, 1.5}, // guide G9a - long straight
+    {1.5, 1.5, 1.5, 1.5}, // guide G9b - long straight
+    {2.0, 2.0, 2.0, 2.0}, // guide G10
+    {2.0, 2.0, 2.0, 2.0}, // guide G11
+    {2.5, 2.5, 2.5, 2.5}, // guide G12
+    {3.0, 3.0, 3.0, 3.0}, // guide G13
+    {4.0, 4.0, 4.0, 4.0}, // guide G14
+    {5.0, 5.0, 5.0, 5.0}, // guide G15
   };
 
 
@@ -178,12 +179,11 @@ DECLARE
     {0.00, 0.00, 0.00, 0.35,  14, 1.0, 176, 0.15, 0.0, 0.1340}, //CH4  --> FO2 at 81.25 m (not used)
   };
 
+  //___________________________________________________________________________________________
 
-  //===========================================================================================
+  // Estimation of the phase of the chopper.
 
-  //Estimation of the phase of the chopper.
-
-  //Calculates the time elapsed by the neutron in the secondary.
+  // Calculates the time elapsed by the neutron in the secondary.
   double t2( double L2, double da, double theta )
   {
     return 2*MNEUTRON/(HBAR*2*PI) * L2*(da*1e-10)*sin(DEG2RAD*theta); //seconds
@@ -235,12 +235,14 @@ DECLARE
 
 USERVARS
 %{
-  double t0; // time recorded at sample position
+  double t0; // time recorded at sample position (for Event_broadcaster)
 %}
 
 
-/*  The INITIALIZE section is executed when the simulation starts     */
-/*  (C code). You may use them as component parameter values.         */
+//===========================================================================================
+// The INITIALIZE section is executed when the simulation starts
+// (C code). You may use them as component parameter values.
+//___________________________________________________________________________________________
 INITIALIZE
 %{
 
@@ -268,17 +270,14 @@ DSPREAD=0.0035; // for faster simulation
 //
 APX=dROT*DEG2RAD*ANA_RAD*0.9; // factor 0.9 just to avoid overlapping of plates
 APY=0.94;                    // fixed value in vertical
-
-
 %}
+//===========================================================================================
 
 TRACE
 
 //_______________________________________________________________________________________
-//
 // MODERATOR SOURCE
-////////////////////////////////////////////////////////////////////////////////////////
-
+//_______________________________________________________________________________________
 COMPONENT origin = Progress_bar()
 	AT (0,0,0) ABSOLUTE
 
@@ -609,8 +608,8 @@ options=
         "multiple y all bins=1400, limits=[-7E-2, 7E-2]")
 AT (0.0, 0.0, 0.001) RELATIVE psd_FO11
 */
-//G6 curved guide 36 pieces of 1 m each = 36 m; the guide starts at L=11.25 m
-//G6_1
+// G6 curved guide 36 pieces of 1 m each = 36 m; the guide starts at L=11.25 m
+// G6_1
 COMPONENT G6 = Guide_gravity(
         w1 = guide[8][0], h1 = guide[8][1], w2 = guide[8][2], h2 = guide[8][3],
         l = guide[8][4], G=gravityeffect,
@@ -618,179 +617,179 @@ COMPONENT G6 = Guide_gravity(
         alpha=0,atop=0,abottom=0,aleft=0,aright=0, W=0)
         AT (0.0, 0.0, guide[7][4]+gapguides) RELATIVE PREVIOUS
 
-//G6_2
+// G6_2
 COMPONENT COPY(G6) = COPY(G6)
         AT (0, 0, guide[8][4] + gapguides) RELATIVE PREVIOUS
         ROTATED (0, guide[8][4]/guide[8][8]*RAD2DEG, 0) RELATIVE PREVIOUS
 
-//G6_3
+// G6_3
 COMPONENT COPY(G6) = COPY(G6)
         AT (0, 0, guide[8][4] + gapguides) RELATIVE PREVIOUS
         ROTATED (0, guide[8][4]/guide[8][8]*RAD2DEG, 0) RELATIVE PREVIOUS
 
-//G6_4
+// G6_4
 COMPONENT COPY(G6) = COPY(G6)
         AT (0, 0, guide[8][4] + gapguides) RELATIVE PREVIOUS
         ROTATED (0, guide[8][4]/guide[8][8]*RAD2DEG, 0) RELATIVE PREVIOUS
 
-//G6_5
+// G6_5
 COMPONENT COPY(G6) = COPY(G6)
         AT (0, 0, guide[8][4] + gapguides) RELATIVE PREVIOUS
         ROTATED (0, guide[8][4]/guide[8][8]*RAD2DEG, 0) RELATIVE PREVIOUS
 
-//G6_6
+// G6_6
 COMPONENT COPY(G6) = COPY(G6)
         AT (0, 0, guide[8][4] + gapguides) RELATIVE PREVIOUS
         ROTATED (0, guide[8][4]/guide[8][8]*RAD2DEG, 0) RELATIVE PREVIOUS
 
-//G6_7
+// G6_7
 COMPONENT COPY(G6) = COPY(G6)
         AT (0, 0, guide[8][4] + gapguides) RELATIVE PREVIOUS
         ROTATED (0, guide[8][4]/guide[8][8]*RAD2DEG, 0) RELATIVE PREVIOUS
 
-//G6_8
+// G6_8
 COMPONENT COPY(G6) = COPY(G6)
         AT (0, 0, guide[8][4] + gapguides) RELATIVE PREVIOUS
         ROTATED (0, guide[8][4]/guide[8][8]*RAD2DEG, 0) RELATIVE PREVIOUS
 
-//G6_9
+// G6_9
 COMPONENT COPY(G6) = COPY(G6)
         AT (0, 0, guide[8][4] + gapguides) RELATIVE PREVIOUS
         ROTATED (0, guide[8][4]/guide[8][8]*RAD2DEG, 0) RELATIVE PREVIOUS
 
-//G6_10
+// G6_10
 COMPONENT COPY(G6) = COPY(G6)
         AT (0, 0, guide[8][4] + gapguides) RELATIVE PREVIOUS
         ROTATED (0, guide[8][4]/guide[8][8]*RAD2DEG, 0) RELATIVE PREVIOUS
 
-//G6_11
+// G6_11
 COMPONENT COPY(G6) = COPY(G6)
         AT (0, 0, guide[8][4] + gapguides) RELATIVE PREVIOUS
         ROTATED (0, guide[8][4]/guide[8][8]*RAD2DEG, 0) RELATIVE PREVIOUS
 
-//G6_12
+// G6_12
 COMPONENT COPY(G6) = COPY(G6)
         AT (0, 0, guide[8][4] + gapguides) RELATIVE PREVIOUS
         ROTATED (0, guide[8][4]/guide[8][8]*RAD2DEG, 0) RELATIVE PREVIOUS
 
-//G6_13
+// G6_13
 COMPONENT COPY(G6) = COPY(G6)
         AT (0, 0, guide[8][4] + gapguides) RELATIVE PREVIOUS
         ROTATED (0, guide[8][4]/guide[8][8]*RAD2DEG, 0) RELATIVE PREVIOUS
 
-//G6_14
+// G6_14
 COMPONENT COPY(G6) = COPY(G6)
         AT (0, 0, guide[8][4] + gapguides) RELATIVE PREVIOUS
         ROTATED (0, guide[8][4]/guide[8][8]*RAD2DEG, 0) RELATIVE PREVIOUS
 
-//G6_15
+// G6_15
 COMPONENT COPY(G6) = COPY(G6)
         AT (0, 0, guide[8][4] + gapguides) RELATIVE PREVIOUS
         ROTATED (0, guide[8][4]/guide[8][8]*RAD2DEG, 0) RELATIVE PREVIOUS
 
-//G6_16
+// G6_16
 COMPONENT COPY(G6) = COPY(G6)
         AT (0, 0, guide[8][4] + gapguides) RELATIVE PREVIOUS
         ROTATED (0, guide[8][4]/guide[8][8]*RAD2DEG, 0) RELATIVE PREVIOUS
 
 // Bunker Wall: L=24.5-28 m //
 
-//G6_17
+// G6_17
 COMPONENT COPY(G6) = COPY(G6)
         AT (0, 0, guide[8][4] + gapguides) RELATIVE PREVIOUS
         ROTATED (0, guide[8][4]/guide[8][8]*RAD2DEG, 0) RELATIVE PREVIOUS
 
-//G6_18
+// G6_18
 COMPONENT COPY(G6) = COPY(G6)
         AT (0, 0, guide[8][4] + gapguides) RELATIVE PREVIOUS
         ROTATED (0, guide[8][4]/guide[8][8]*RAD2DEG, 0) RELATIVE PREVIOUS
 
-//G6_19
+// G6_19
 COMPONENT COPY(G6) = COPY(G6)
         AT (0, 0, guide[8][4] + gapguides) RELATIVE PREVIOUS
         ROTATED (0, guide[8][4]/guide[8][8]*RAD2DEG, 0) RELATIVE PREVIOUS
 
-//G6_20
+// G6_20
 COMPONENT COPY(G6) = COPY(G6)
         AT (0, 0, guide[8][4] + gapguides) RELATIVE PREVIOUS
         ROTATED (0, guide[8][4]/guide[8][8]*RAD2DEG, 0) RELATIVE PREVIOUS
 
-//G6_21
+// G6_21
 COMPONENT COPY(G6) = COPY(G6)
         AT (0, 0, guide[8][4] + gapguides) RELATIVE PREVIOUS
         ROTATED (0, guide[8][4]/guide[8][8]*RAD2DEG, 0) RELATIVE PREVIOUS
 
-//G6_22
+// G6_22
 COMPONENT COPY(G6) = COPY(G6)
         AT (0, 0, guide[8][4] + gapguides) RELATIVE PREVIOUS
         ROTATED (0, guide[8][4]/guide[8][8]*RAD2DEG, 0) RELATIVE PREVIOUS
 
-//G6_23
+// G6_23
 COMPONENT COPY(G6) = COPY(G6)
         AT (0, 0, guide[8][4] + gapguides) RELATIVE PREVIOUS
         ROTATED (0, guide[8][4]/guide[8][8]*RAD2DEG, 0) RELATIVE PREVIOUS
 
-//G6_24
+// G6_24
 COMPONENT COPY(G6) = COPY(G6)
         AT (0, 0, guide[8][4] + gapguides) RELATIVE PREVIOUS
         ROTATED (0, guide[8][4]/guide[8][8]*RAD2DEG, 0) RELATIVE PREVIOUS
 
-//G6_25
+// G6_25
 COMPONENT COPY(G6) = COPY(G6)
         AT (0, 0, guide[8][4] + gapguides) RELATIVE PREVIOUS
         ROTATED (0, guide[8][4]/guide[8][8]*RAD2DEG, 0) RELATIVE PREVIOUS
 
-//G6_26
+// G6_26
 COMPONENT COPY(G6) = COPY(G6)
         AT (0, 0, guide[8][4] + gapguides) RELATIVE PREVIOUS
         ROTATED (0, guide[8][4]/guide[8][8]*RAD2DEG, 0) RELATIVE PREVIOUS
 
-//G6_27
+// G6_27
 COMPONENT COPY(G6) = COPY(G6)
         AT (0, 0, guide[8][4] + gapguides) RELATIVE PREVIOUS
         ROTATED (0, guide[8][4]/guide[8][8]*RAD2DEG, 0) RELATIVE PREVIOUS
 
-//G6_28
+// G6_28
 COMPONENT COPY(G6) = COPY(G6)
         AT (0, 0, guide[8][4] + gapguides) RELATIVE PREVIOUS
         ROTATED (0, guide[8][4]/guide[8][8]*RAD2DEG, 0) RELATIVE PREVIOUS
 
-//G6_29
+// G6_29
 COMPONENT COPY(G6) = COPY(G6)
         AT (0, 0, guide[8][4] + gapguides) RELATIVE PREVIOUS
         ROTATED (0, guide[8][4]/guide[8][8]*RAD2DEG, 0) RELATIVE PREVIOUS
 
-//G6_30
+// G6_30
 COMPONENT COPY(G6) = COPY(G6)
         AT (0, 0, guide[8][4] + gapguides) RELATIVE PREVIOUS
         ROTATED (0, guide[8][4]/guide[8][8]*RAD2DEG, 0) RELATIVE PREVIOUS
 
-//G6_31
+// G6_31
 COMPONENT COPY(G6) = COPY(G6)
         AT (0, 0, guide[8][4] + gapguides) RELATIVE PREVIOUS
         ROTATED (0, guide[8][4]/guide[8][8]*RAD2DEG, 0) RELATIVE PREVIOUS
 
-//G6_32
+// G6_32
 COMPONENT COPY(G6) = COPY(G6)
         AT (0, 0, guide[8][4] + gapguides) RELATIVE PREVIOUS
         ROTATED (0, guide[8][4]/guide[8][8]*RAD2DEG, 0) RELATIVE PREVIOUS
 
-//G6_33
+// G6_33
 COMPONENT COPY(G6) = COPY(G6)
         AT (0, 0, guide[8][4] + gapguides) RELATIVE PREVIOUS
         ROTATED (0, guide[8][4]/guide[8][8]*RAD2DEG, 0) RELATIVE PREVIOUS
 
-//G6_34
+// G6_34
 COMPONENT COPY(G6) = COPY(G6)
         AT (0, 0, guide[8][4] + gapguides) RELATIVE PREVIOUS
         ROTATED (0, guide[8][4]/guide[8][8]*RAD2DEG, 0) RELATIVE PREVIOUS
 
-//G6_35
+// G6_35
 COMPONENT COPY(G6) = COPY(G6)
         AT (0, 0, guide[8][4] + gapguides) RELATIVE PREVIOUS
         ROTATED (0, guide[8][4]/guide[8][8]*RAD2DEG, 0) RELATIVE PREVIOUS
 
-//G6_36
+// G6_36
 COMPONENT COPY(G6) = COPY(G6)
         AT (0, 0, guide[8][4] + gapguides) RELATIVE PREVIOUS
         ROTATED (0, guide[8][4]/guide[8][8]*RAD2DEG, 0) RELATIVE PREVIOUS
@@ -1107,9 +1106,22 @@ EXTEND
 %{
   t0 = t;
 
-  if ( !SCATTERED) ABSORB; //Virtual Perfect BeamStop
-%}
+  if (!SCATTERED) ABSORB; //Virtual Perfect BeamStop
 
+  // Calculate theta in zx plane, 0 being forward, 180 backwards, 90 in x direction
+  n_theta = 0; // Default option in case vx or vz == 0, could add cases but shouldn't happen
+  if (vx > 0.0 && vz > 0.0) {
+      n_theta = atan(vx/vz)*RAD2DEG;
+  } else if (vx > 0.0 && vz < 0.0) {
+      n_theta = 180.0 + atan(vx/vz)*RAD2DEG;
+  } else if (vx < 0.0 && vz < 0.0) {
+      n_theta = 180.0 + atan(vx/vz)*RAD2DEG;
+  } else if (vx < 0.0 && vz > 0.0) {
+      n_theta = 360.0 + atan(vx/vz)*RAD2DEG;
+  }
+  //printf("n_theta = %lf \n", n_theta); // shows values between 0 and 360 deg
+
+%}
 // to do: sample choicer and s-env
 
 
@@ -1264,42 +1276,57 @@ COMPONENT An1_E_variable_range = E_monitor (xmin=-0.05, xmax=0.05, ymin=-0.1, ym
 
 
 COMPONENT An1_rot_axis2=Arm()
-AT (0, 0 ,ANA_RAD) RELATIVE An1_rot_axis
+AT (0, 0, ANA_RAD) RELATIVE An1_rot_axis
 ROTATED (ANA_ROT,0,0) RELATIVE An1_rot_axis
 //ROTATED (0,0,0) RELATIVE An1_rot_axis
 
 COMPONENT An2_rot_axis2=Arm()
-AT (0,0,ANA_RAD) RELATIVE An2_rot_axis
-//ROTATED (ANA_ROT,0,0) RELATIVE An2_rot_axis
-ROTATED (0,0,0) RELATIVE An2_rot_axis
+AT (0, 0, ANA_RAD) RELATIVE An2_rot_axis
+ROTATED (ANA_ROT,0,0) RELATIVE An2_rot_axis
+//ROTATED (0,0,0) RELATIVE An2_rot_axis
 
 COMPONENT An3_rot_axis2=Arm()
 AT (0,0,ANA_RAD) RELATIVE An3_rot_axis
-//ROTATED (ANA_ROT,0,0) RELATIVE An3_rot_axis
-ROTATED (0,0,0) RELATIVE An3_rot_axis
+ROTATED (ANA_ROT,0,0) RELATIVE An3_rot_axis
+//ROTATED (0,0,0) RELATIVE An3_rot_axis
+
+/*
+Instead of using group, WHEN conditions on the neutron angle in the zx plane
+is used to determine which detector it could hit. The GROUP statement can fail
+when the components in the group are not parallel, this bug is being addressed
+at the moment and will probably be fixed in next McStas release.
+*/
 
 
 COMPONENT An1 = Spherical_Backscattering_Analyser(
   xmin=-APX/2, xmax=APX/2, ymin=-APY/2, ymax=APY/2, // MIRACLES
   //radius=ANA_RAD, Q = q_si111, mosaic=0.0, dspread=DSPREAD, R0=1, debug=0) //radius
-  radius=ANA_CUR, Q = q_si111, mosaic=0.0, dspread=DSPREAD, R0=1, debug=0)//curvature
+  radius=ANA_CUR, Q   = q_si111, mosaic=0.0, dspread=DSPREAD, R0=1, debug=0)//curvature
   //AT (0, 0, 0) RELATIVE An1_rot_axis2        // <-----------ORIG
+  WHEN (n_theta > ROT1 - 0.5*dROT && n_theta < ROT1 + 0.5*dROT)
   AT (0, ANA_ELE*1, 0) RELATIVE An1_rot_axis2 // <-----------ELEVATING example
-GROUP ANALYZERS
+  //GROUP ANALYZERS
+
+
 
 
 COMPONENT An2 = Spherical_Backscattering_Analyser(
   xmin=-APX/2, xmax=APX/2, ymin=-APY/2, ymax=APY/2, // MIRACLES
-  radius=ANA_RAD, Q = q_si111, mosaic=0.0, dspread=DSPREAD, R0=1, debug=0)
-  AT (0, 0.00, 0) RELATIVE An2_rot_axis2
-GROUP ANALYZERS
+  //radius=ANA_RAD, Q = q_si111, mosaic=0.0, dspread=DSPREAD, R0=1, debug=0)
+  radius=ANA_CUR, Q   = q_si111, mosaic=0.0, dspread=DSPREAD, R0=1, debug=0)//curvature
+  WHEN (n_theta < ROT1 - 0.5*dROT)
+  AT (0, ANA_ELE*1, 0) RELATIVE An2_rot_axis2
+//GROUP ANALYZERS
+
 
 
 COMPONENT An3 = Spherical_Backscattering_Analyser(
   xmin=-APX/2, xmax=APX/2, ymin=-APY/2, ymax=APY/2, // MIRACLES
-  radius=ANA_RAD, Q = q_si111, mosaic=0.0, dspread=DSPREAD, R0=1, debug=0)
-  AT (0, 0, 0) RELATIVE An3_rot_axis2
-GROUP ANALYZERS
+  //radius=ANA_RAD, Q = q_si111, mosaic=0.0, dspread=DSPREAD, R0=1, debug=0)
+  radius=ANA_CUR, Q   = q_si111, mosaic=0.0, dspread=DSPREAD, R0=1, debug=0)//curvature
+  WHEN (n_theta > ROT1 + 0.5*dROT)
+  AT (0, ANA_ELE*1, 0) RELATIVE An3_rot_axis2
+//GROUP ANALYZERS
 
 
 
@@ -1349,7 +1376,8 @@ COMPONENT between_Analyzer_and_Detector_Banana = Monitor_nD( // orig
     options  = "banana theta limits=[0,180] bins=180 y limits=[-1.5, 1.5]    bins=200, incoming", //OK
     filename = "between_Analyzer_and_Detector_Banana",
     yheight  = 8*0.5,
-    radius   = 1*0.25)
+    radius   = 1*0.25,
+    restore_neutron=1.0)
 AT (0, 0, 0) RELATIVE arm_sample
 EXTEND %{
   //printf("\n xyz %f, %f, %f\n", x, y, z);

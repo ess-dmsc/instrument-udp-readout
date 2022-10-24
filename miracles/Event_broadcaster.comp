@@ -115,10 +115,13 @@ efu_time_t last_time;
 efu_time_t repetition_time;
 efu_time_t offset_time;
 efu_time_t now_time;
+int readouts;
 %}
 
 INITIALIZE
 %{
+  readouts = 0;
+
   // Include the header file and run any initialization for the real broadcaster
   if (ip == 0 || ip[0] == '\0'){
   	miracles = miracles_readout_create("127.0.0.1", port);
@@ -142,11 +145,14 @@ TRACE
   double t0;
   int fail;
 
-  if (broadcast){
+
+  if (broadcast && readouts > 10){
 	  // TODO combine these three into a single 'flush' call?
+    printf("Sending 10 readouts\n");
 	  miracles_readout_send(miracles);
 		miracles_readout_newPacket(miracles);
 	  miracles_readout_setPulseTime(miracles, 0, 0, 0, 0);
+    readouts=0;
 	}
 
   t0 = particle_getvar(_particle, user1, &fail);
@@ -173,6 +179,7 @@ TRACE
       printf("READOUT - RING %u, FEN %u, TUBE %2u (hetube %2u) - A %5u, B %5u, TOF %10u (ns)\n", \
              RING, FEN, TubePair, hetube, A, B, (int)TOF);
       miracles_readout_add(miracles, 2 * RING, FEN, 0, (int)TOF, TubePair, A, B);
+      readouts++;
     }
 
   }
@@ -181,8 +188,10 @@ TRACE
 FINALLY
 %{
   // perform any teardown of the stateful broadcaster
-  if (broadcast) miracles_readout_send(miracles);
-    miracles_readout_destroy(miracles);
+  if (broadcast) {
+    miracles_readout_send(miracles);
+  }
+  miracles_readout_destroy(miracles);
 %}
 
 MCDISPLAY
