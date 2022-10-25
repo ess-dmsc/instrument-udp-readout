@@ -93,14 +93,16 @@ SHARE
       return;
     }
 
+    double pos = (fabs(y) - ymin)/tubeheight; // between 0.0 and 1.0
+
     // for now hardcode A and B to the upper 1/8'th of a tube
     // TODO needs fixing (maybe)
     if (AorB == 0 ) { // A-end of tube
-      *A = 1000;
+      *A = 7000 * (1.0 - pos);
       *B = 7000;
     } else { // B-end of tube
       *A = 7000;
-      *B = 1000;
+      *B = 7000 * (1.0 - pos);
     }
     return;
   }
@@ -173,7 +175,7 @@ TRACE
     getAmplitudes(y, hetube % 2, &A, &B);
 
     if (!((A == 0) && (B == 0))) {
-      TOF = (int)(1000000000 * t);
+      TOF = (int)(1000000000 * (t - 0.26));
 
       //printf("\n NEUTRON at theta %f, hetube %u, tube_pair %u (x,y,z %f %f %f), t %.0f(us)\n", theta, hetube, tube_pair, x, y, z, t*1000000);
       printf("READOUT - RING %u, FEN %u, TUBE %2u (hetube %2u) - A %5u, B %5u, TOF %10u (ns)\n", \

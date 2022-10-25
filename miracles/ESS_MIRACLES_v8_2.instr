@@ -286,7 +286,7 @@ COMPONENT Source = ESS_butterfly(
         cold_frac=0.5,
         sector="W", beamline=5,
         c_performance=1,
-        n_pulses=8,
+        n_pulses=1,
         dist = 1.9, focus_xw = guide[0][0], focus_yh = guide[0][1],
         //Lmin=1.27, Lmax=51.27) // orig
         Lmin=SRC_MIN, Lmax=SRC_MAX)
