@@ -66,7 +66,6 @@ DEFINE INSTRUMENT ESS_MIRACLES(
 
 DECLARE
 %{
-  double n_theta; // For when condition on analyzers
   char sendTo[256]; // ip address for udp data transmission
   double rotinstrument=-1.0;
 
@@ -235,6 +234,7 @@ DECLARE
 
 USERVARS
 %{
+  double n_theta; // For when condition on analyzers
   double t0; // time recorded at sample position (for Event_broadcaster)
 %}
 
