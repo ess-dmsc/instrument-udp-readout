@@ -83,8 +83,8 @@ SHARE
   // also (guessing) tubepair may be uptide down for lower banks and
   // this A anb B might be swapped.
   void getAmplitudes(double y, int AorB, uint16_t * A, uint16_t * B) {
-    double ymin =       0.133; // mm
-    double tubeheight = 0.150; // mm
+    double ymin =       0.133; // m
+    double tubeheight = 0.150; // m
 
     if ((fabs(y) < ymin) || (fabs(y) > (ymin + tubeheight))) {
       //printf("y-value %f outside tube\n", y);
@@ -162,26 +162,37 @@ TRACE
 
   // Send the event to the broadcaster to be accumulated and broadcast
   if (broadcast) {
-    uint8_t hetube = getTubeId(x, y, z);
+    // int masked = (y > z*0.50 + 0.14 ) ? 1 : 0;
+    // int masked = ((y > 0.14) || (y < 0.13)) ? 1 : 0;
+    int masked = 0;
 
-    RING = getRingId(hetube, y);
+    if (masked == 0) {
 
-    TubePair = (hetube % 24)/2;
+      uint8_t hetube = getTubeId(x, y, z);
 
-    if ((RING == 2) || (RING == 3)) {
-      hetube += 48;
-    }
+      RING = getRingId(hetube, y);
 
-    getAmplitudes(y, hetube % 2, &A, &B);
+      TubePair = (hetube % 24)/2;
 
-    if (!((A == 0) && (B == 0))) {
-      TOF = (int)(1000000000 * (t - 0.26));
+      if ((RING == 2) || (RING == 3)) {
+        hetube += 48;
+      }
 
-      //printf("\n NEUTRON at theta %f, hetube %u, tube_pair %u (x,y,z %f %f %f), t %.0f(us)\n", theta, hetube, tube_pair, x, y, z, t*1000000);
-      printf("READOUT - RING %u, FEN %u, TUBE %2u (hetube %2u) - A %5u, B %5u, TOF %10u (ns)\n", \
-             RING, FEN, TubePair, hetube, A, B, (int)TOF);
-      miracles_readout_add(miracles, 2 * RING, FEN, 0, (int)TOF, TubePair, A, B);
-      readouts++;
+      getAmplitudes(y, hetube % 2, &A, &B);
+
+      if (!((A == 0) && (B == 0))) {
+        TOF = (int)(1000000000 * (t)); // ns
+
+        int TOFInTicks = TOF/11.356861;
+
+        //printf("\n NEUTRON at theta %f, hetube %u, tube_pair %u (x,y,z %f %f %f), t %.0f(us)\n", theta, hetube, tube_pair, x, y, z, t*1000000);
+        printf("READOUT - RING %u, FEN %u, TUBE %2u (hetube %2u) - A %5u, B %5u, TOF %10u (ns), TICKS %10u\n", \
+               RING, FEN, TubePair, hetube, A, B, (int)TOF, TOFInTicks);
+        miracles_readout_add(miracles, 2 * RING, FEN, 0, (int)TOFInTicks, TubePair, A, B);
+        readouts++;
+      }
+    } else {
+      printf("Readout discarded by mask: y %f, z %f\n", y, z);
     }
 
   }

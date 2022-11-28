@@ -1,7 +1,7 @@
 # Makefile for MIRACLES
 
 # Do not edit these
-INSTR=ESS_MIRACLES_v8_2
+INSTR=ESS_MIRACLES_v8_3
 COMPS=Event_broadcaster.comp
 WRAPSRC=src/wrapper.cpp src/MiraclesReadout.cpp ../common/GenericReadout.cpp
 WRAPINC=src/wrapper.h src/MiraclesReadout.h ../common/GenericReadout.h
