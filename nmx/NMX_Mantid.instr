@@ -1,0 +1,1176 @@
+/*******************************************************************************
+*         McStas instrument definition URL=http://www.mcstas.org
+*
+* Instrument: NMX
+*
+* %Identification
+* V1 Initally written by: Britt Rosendahl Hansen (broh@fysik.dtu.dk)
+* V2 Updated by: Nikolaos Tsapatsaris (nikolaos.tsapatsaris@esss.se)
+* Date: 20161013
+* Origin: DTU Fysik, ESS
+* %INSTRUMENT_SITE: ESS
+*******************************************************************************/
+
+/* The DECLARE section allows us to declare variables or  small      */
+/* functions in C syntax. These may be used in the whole instrument. */
+
+/* Change name of instrument and input parameters with default values */
+
+DEFINE INSTRUMENT NMX_Mantid( 
+
+	frac=1, 
+	mon_shift=0.0,
+	lmin=1.8,
+	lmax=3.55,
+	LambdaMin = 1.8, 
+	LambdaMax = 3.55,
+	L_min = 1.8,
+	L_max = 3.55,
+    Slit1_width = 0.05,
+	Slit1_height = 0.05,
+	Slit2_width = 0.05,
+	Slit2_height = 0.05,
+	PinholeCollimator_width = 0.05,
+    PinholeCollimator_height = 0.05,
+	PinholeCollimator_divergence = 40,
+	XtalSize_width = 0.005,
+	XtalSize_height = 0.005,
+	XtalSize_depth = 0.005,
+	XtalPhiX = 0,
+	XtalPhiY = 0,
+	XtalMosaicity = 30,
+	DetectorDist = 0.2, 
+	DetectorX = 0.6, 
+	DetectorY = 0.6, 
+	TT = 30,
+	Phase2A=173.7140,
+	Phase2B=253.7992)
+
+DECLARE
+%{
+
+//This is the declare function form the new moderator module
+//double lambdamin,lambdamax;
+  int sgn;
+  double cosa,sina;
+  double ctrX,ctrZ,BX0,BZ0;
+  double mon_width;
+  double ANGLE=55;	
+
+/* Constants */
+	const double h	= 6.626068E-34; 	//m^2*kg/s
+  	const double m_n	= 1.674927E-27; 	//kg
+
+/* Small distance */
+  	double deltaz = 1E-9;
+
+ /* Source */
+  	double ESSfreq = 14;
+  	double ESSpulselength = 2.86e-3;
+  	double Theta;
+  	double MonTransl;
+  	double XW, YH;
+  	char options1[256],options2[256],options3[256],options4[256];
+  	char srcdef[128];
+  	double WidthC=0.23;
+	double WidthT=0.12;
+	double frac=1;
+	double power=5; 
+	double np=1; 
+	double ISleft=0.5;
+
+/* Guides */
+	double Moderator2CaveWallDistance = 153.91;
+  	double distModGuide = 6;
+    double Position_postcurvedguide=24.5;
+	double Position_poststraightguide2=153.91;
+
+/* First straight guide */
+  	double LengthStraight_1 = 3.317;
+	double GuideDim_s1_w1 = 0.05;
+	double GuideDim_s1_w2 = 0.05;
+	double GuideDim_s1_h1 = 0.05;
+	double GuideDim_s1_h2 = 0.05;
+  	double coating_straight_1 = 1;
+
+/* Monolith window */
+	double distModMonolithwindow = 5.372;
+	double monolith_window_w = 0.1;
+	double monolith_window_h = 0.1;
+	double Length_monolithwindow = 0.01;
+
+/* Light shutter */
+	double distModLightshutter = 5.417;
+	double lightshutter_w = 0.04;
+	double lightshutter_h = 0.04;
+	double Length_lightshutter = 0.5;
+
+/* Curved guide */
+  	double R = 1300;
+	double GuideDim_w = 0.05;
+	double GuideDim_h = 0.05;
+
+/*Curved guide*/
+
+double StartWidth=0.045;
+double EndWidth=0.045;
+
+double StartHeight=0.045;
+double EndHeight=0.045;
+
+double TotalNrSeg=37;
+double LengthCurveSeg=0.5;
+
+//double AngleRotSegVertical=-0.035259294;
+double AngleRotSegVertical=0;
+double AngleRotSegHorizontal=0.035259294;
+double SegmN=1;
+
+double coatingleft = 1, coatingright = 3, coatingtop = 1, coatingbottom = 1;
+
+
+/* Choppers */
+	double Radius_dc;
+	double L_min, L_Max;
+	double v_center; 
+	double chopperDiskSpace;
+	double chopperFreq,chopper1OpenT,chopper1Delay;
+	double chopper2OpenT,chopper2ADelay,chopper2BDelay;
+	
+/* Frame Overlap Mirror */
+    double FOM_width = 0.05;
+	double FOM_height = 0.05;
+
+/* Secondary Shutter 2 */
+    double SecondaryShutter2_width = 0.1;
+	double SecondaryShutter2_height = 0.1;
+
+/* Scraper */
+    double Scraper_width = 0.1;
+	double Scraper_height = 0.1;
+
+/* Sample Shutter */
+    double SampleShutter_width = 0.1;
+	double SampleShutter_height =0.1;
+
+/* Sample */
+  	double SamplePos = 156;
+  	double XtalPhiX;	// Rotation of sample around the horizontal plane.
+	double XtalPhiY;	// Rotation of sample around the vertical plane;
+	double XtalMosaicity;	// Crystal mosaicity;
+	double XtalSize_width, XtalSize_height, XtalSize_depth;
+	double Position_sample = 157.5;
+
+/* Monitors */
+  	double Upper_bound_preCurvedGuide, Lower_bound_preCurvedGuide;
+  	double Upper_bound_postCurvedGuide, Lower_bound_postCurvedGuide;
+  	double Upper_bound_postStraightGuide2, Lower_bound_postStraightGuide2;
+	double Upper_bound_prechopper1, Lower_bound_prechopper1;
+	double Upper_bound_postchopper1, Lower_bound_postchopper1;
+	double Upper_bound_prechopper2, Lower_bound_prechopper2;
+	double Upper_bound_postchopper2, Lower_bound_postchopper2;
+	double Upper_bound_sample, Lower_bound_sample;
+
+double SegmentArray[30]={0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.25,0.25,0.25,0.25,0.25,0.25,0.25,0.25,0.25,0.25,0.25,0.25,0.25,0.25,0.25,0.25,0.25,0.25,0.25,0.25};
+
+//Functions
+	
+	// Calculate chopper open time
+	double calcOpenTime(double pos, double minL, double maxL){
+		// Base calculation on minL from start of pulse,
+		// maxL from end of pulse.
+		// It is assumed that maxL-minL is not greater than frame width	
+		double opentime;
+		printf("pos=%g; minL=%g; maxL=%g;\n",pos,minL,maxL);
+		opentime = ((maxL-minL)*(pos)/3.95603)+2.86;
+		
+		return opentime;
+	}
+	
+	// Calculate chopper disk 1 delay
+	double calcDisk1Delay(double pos, double opening, double minL, double freq){
+		// Base calculation on leading edge at guide centre
+		// Delay is TOF for leading edge + rotation of half opening				
+		double delay;		
+		
+		delay = (minL*(pos)/3.95603)+((opening/2)*1000/(freq*360));
+		
+		return delay;
+	}
+	
+	// Calculate chopper disk 2 delay 
+	double calcDisk2Delay(double pos, double opening, double maxL, double freq){
+		// Base calculation on trailing edge at guide centre
+		// Delay is TOF for trailing edge - rotation of half opening
+		double delay;		
+		
+		delay = (maxL*(pos)/3.95603)+((opening/2)*1000/(freq*360));
+		
+		return delay;
+	
+	}
+%}
+
+INITIALIZE
+ /* Source */
+ %{
+
+  power=5;
+  np=1;
+  mon_width=0.25;
+  sgn= (ANGLE>0 ? 1:-1);
+  cosa=cos(ANGLE*DEG2RAD);
+  sina=sin(ANGLE*DEG2RAD);
+  /* centre of the beamline coordinates w.r.t. moderator cooordinates  */
+// ctrX=-sgn*0.0716;ctrZ=0.0827;
+//ctrX=-sgn*0.07345;
+//ctrZ=0.132;
+
+ /* rotated by beamport angle */
+ // BX0=ctrX*cosa + ctrZ*sina;
+ // BZ0=-ctrX*sina + ctrZ*cosa;
+ // printf("Beamline centered at [cm]: x= %g,  z=%g \n",ctrX*100,ctrZ*100);
+ // printf("after rotation by beamport angle [cm]: x= %g,  z=%g \n",BX0*100,BZ0*100);
+ // printf("maximum extent of cold area [cm]: x= %g\n",(0.1425*cosa + 0.05077*sina - BX0)*100);
+  
+  sprintf(srcdef,"September 2016");
+	
+/* First straight guide */
+	LengthStraight_1 = distModMonolithwindow - distModGuide;
+
+/* Guide segments for curved guide calculated */
+/*	Guide_segment_1 = LengthCurved_1/NumSegments_1;
+  	Curve_ang_1 = LengthCurved_1/R* RAD2DEG/NumSegments_1;
+*/
+/*    printf("Curved guide: \n");
+  	printf("Segment lengths = %g, %g, %g, %g, %g \n", Guide_segment_1, Guide_segment_2, Guide_segment_3, Guide_segment_4, Guide_segment_5);
+  	printf("Curve angles = %g, %g, %g, %g, %g \n", Curve_ang_1, Curve_ang_2, Curve_ang_3, Curve_ang_4, Curve_ang_5);
+*/
+
+/* Choppers */
+	chopperDiskSpace = 0.025; // distance between chopper disks in each pair
+	
+	chopperFreq = 14.0;
+	//Chopper 1
+	chopper1OpenT = calcOpenTime(28.4, L_min, L_max);
+	chopper1Delay = calcDisk1Delay(28.4,77.76,L_min,14.0);
+
+	//Chopper 2
+	chopper2OpenT = calcOpenTime(51, L_min, L_max);	
+	chopper2ADelay = calcDisk1Delay(51-chopperDiskSpace,140,L_min,14.0);
+	chopper2BDelay = calcDisk2Delay(51+chopperDiskSpace,140,L_max,14.0);	
+	
+	printf("---- Chopper1 Open Time = %g ms\n",chopper1OpenT);	
+	printf("---- Chopper1 Delay = %g ms\n",chopper1Delay);
+	
+
+	printf("---- Chopper2 Open Time = %g ms\n",chopper2OpenT);	
+	printf("---- Chopper2A Delay = %g ms\n",chopper2ADelay);
+	printf("---- Chopper2B Delay = %g ms\n",chopper2BDelay);
+	
+/* Time Monitor parameters */
+  Lower_bound_preCurvedGuide = (distModGuide+LengthStraight_1)/(h/(m_n * LambdaMin*1e-10))*1e6; //microns
+  Upper_bound_preCurvedGuide = ((distModGuide+LengthStraight_1)/(h/(m_n * LambdaMax*1e-10))+ESSpulselength)*1e6; //microns
+ 
+  Lower_bound_postCurvedGuide = (Position_postcurvedguide)/(h/(m_n * LambdaMin*1e-10))*1e6; //microns
+  Upper_bound_postCurvedGuide = ((Position_postcurvedguide)/(h/(m_n * LambdaMax*1e-10))+ESSpulselength)*1e6; //microns
+
+ Lower_bound_postStraightGuide2 = (Position_poststraightguide2)/(h/(m_n * LambdaMin*1e-10))*1e6; //microns
+ Upper_bound_postStraightGuide2 = ((Position_poststraightguide2)/(h/(m_n * LambdaMax*1e-10))+ESSpulselength)*1e6; //microns
+ 
+ Lower_bound_sample = (Position_sample)/(h/(m_n * LambdaMin*1e-10)) * 1e6; 		//microns
+ Upper_bound_sample = ((Position_sample)/(h/(m_n * LambdaMax*1e-10)) + ESSpulselength)*1e6; 	//microns
+
+%}
+
+
+TRACE
+
+COMPONENT Origin = Progress_bar()
+  AT (0,0,0) ABSOLUTE
+
+
+COMPONENT Source = ESS_butterfly(sector="W", beamline=1, Lmin=LambdaMin-0.2, Lmax=LambdaMax+2, acc_power=power, n_pulses=np,
+                                  cold_frac=frac, yheight=0.03, focus_xw=0.05, focus_yh=0.05, target_index=7)
+
+ AT (0, 0, 0)  RELATIVE  Origin
+ROTATED (0, 0, 0) RELATIVE  Origin
+EXTEND %{
+%}
+
+COMPONENT sourceMantid = Arm() 
+ AT (0, 0, 0)  RELATIVE  Origin
+
+/* comp 1: Beamline origin */
+COMPONENT PortOrig = Arm()
+  AT (0.036,0,0) RELATIVE Origin
+  ROTATED (0, -1, 0) RELATIVE Origin
+
+/* comp 2 */
+COMPONENT XmonC = PSDlin_monitor(
+    nx = 250, filename = "XmonC.dat", xmin=-mon_width/2+mon_shift, xmax=mon_width/2+mon_shift, yheight = 0.05,
+    restore_neutron = 1)
+ AT (0, 0, 0.1) RELATIVE PortOrig
+
+/* comp 3 */
+ COMPONENT tofC = TOF_monitor(
+    nt = 100, filename = "tofC.dat", xmin=-mon_width/2+mon_shift, xmax=mon_width/2+mon_shift, yheight = 0.05,
+    tmin = 0, tmax = 10000, restore_neutron = 1)
+AT (0, 0, 0.1) RELATIVE PortOrig
+
+COMPONENT LamC = L_monitor(
+    nL = 160, filename = "LamC.dat", xwidth = 0.05, yheight = 0.05,
+    Lmin = lmin, Lmax = lmax, restore_neutron = 1)
+AT (0, 0, 0.1) RELATIVE PortOrig
+
+
+ COMPONENT divAtSource=Divergence_monitor(
+		nh=100, nv=100, 
+		filename="At_SourceDIVVDIVH.pos",
+        xwidth = 0.005, 			yheight = 0.005,
+          maxdiv_h=0.2,  maxdiv_v=0.2, restore_neutron = 1)
+AT (0, 0, 0.1) RELATIVE PortOrig
+
+
+ COMPONENT psdAtSource = PSD_monitor(
+    	  	filename = "psdAtSource_psd", 
+		xwidth = 0.1, 			yheight = 0.1)
+	AT (0, 0, 0.1) RELATIVE PortOrig
+
+
+	/* ---------------------- Monolith Insert ------------------------- */
+	
+
+COMPONENT MonolithGuide = Guide_gravity(
+    	w1 = EndWidth, 			h1 = 0.035, 
+		w2 =StartWidth, 			h2 = StartHeight, 
+	l =4, 	m = 1)
+
+  AT (0, 0, 1.9999) RELATIVE PortOrig
+  ROTATED  (0, 0, 0) RELATIVE PortOrig
+
+
+/* ---------------------- Monolith Window ------------------------- */
+//COMPONENT Monolith_window_1 = Al_window(thickness= Length_monolithwindow)
+ // AT (0, 0, distModMonolithwindow) RELATIVE PortOrig
+
+/* ---------------------- Curved guide ------------------------- */
+COMPONENT armCurvedGuide = Arm()
+AT (0, 0, 6) RELATIVE PortOrig
+ ROTATED  (0, 0, 0) RELATIVE PortOrig
+
+COMPONENT psdGuide = PSD_monitor(
+    	  	filename = "PreCurvedGuide_psd", 
+		xwidth = GuideDim_s1_w2, 			yheight = GuideDim_s1_h2)
+	AT (0, 0, deltaz/8) RELATIVE armCurvedGuide
+
+COMPONENT toflGuide = TOFLambda_monitor(
+    	  	nL = 500, 
+		nt = 500, 
+		filename = "PreCurvedGuide_tofl", 
+		tmin = Lower_bound_preCurvedGuide,
+    	  	tmax = Upper_bound_preCurvedGuide, 
+		xwidth = GuideDim_s1_w2, 			yheight = GuideDim_s1_h2, 
+		Lmin = LambdaMin,			Lmax = LambdaMax)
+	AT (0, 0, deltaz/4) RELATIVE armCurvedGuide
+
+COMPONENT divlGuide = DivLambda_monitor(
+    	  	nL = 100, 				nh = 100, 
+		filename = "PreCurvedGuide_divl",
+	  	xwidth = GuideDim_s1_w2, 			yheight = GuideDim_s1_h2, 
+		Lmin = LambdaMin, 		Lmax = LambdaMax, 
+		maxdiv_h = 1)
+	AT (0, 0, deltaz/2) RELATIVE armCurvedGuide
+
+COMPONENT CurvedGuide1 = Guide_gravity(
+    		w1 = StartWidth+(0)*(EndWidth-StartWidth)/TotalNrSeg, 			h1 = StartHeight+(0)*(EndHeight-StartHeight)/TotalNrSeg, 
+		w2 =StartWidth+(1)*(EndWidth-StartWidth)/TotalNrSeg, 			h2= StartHeight+(1)*(EndHeight-StartHeight)/TotalNrSeg,
+    		l = LengthCurveSeg, 
+		mleft = coatingleft, 			mright = coatingright, 
+		mtop = coatingtop, 			mbottom = coatingbottom)
+	AT (0, 0, (deltaz)) RELATIVE PREVIOUS
+ROTATED (AngleRotSegVertical, AngleRotSegHorizontal, 0 ) RELATIVE PREVIOUS 
+
+
+COMPONENT CurvedGuide2 = Guide_gravity(
+    		w1 = StartWidth+(1)*(EndWidth-StartWidth)/TotalNrSeg, 			h1 = StartHeight+(1)*(EndHeight-StartHeight)/TotalNrSeg, 
+		w2 =StartWidth+(2)*(EndWidth-StartWidth)/TotalNrSeg, 			h2= StartHeight+(2)*(EndHeight-StartHeight)/TotalNrSeg,
+    		l = LengthCurveSeg, 
+		mleft = coatingleft, 			mright = coatingright, 
+		mtop = coatingtop, 			mbottom = coatingbottom)
+	AT (0, 0, (LengthCurveSeg+deltaz)) RELATIVE PREVIOUS
+ROTATED (AngleRotSegVertical, AngleRotSegHorizontal,0) RELATIVE PREVIOUS 
+
+COMPONENT CurvedGuide3 = Guide_gravity(
+    		w1 = StartWidth+(2)*(EndWidth-StartWidth)/TotalNrSeg, 			h1 = StartHeight+(2)*(EndHeight-StartHeight)/TotalNrSeg, 
+		w2 =StartWidth+(3)*(EndWidth-StartWidth)/TotalNrSeg, 			h2= StartHeight+(3)*(EndHeight-StartHeight)/TotalNrSeg,
+    		l = LengthCurveSeg, 
+		mleft = coatingleft, 			mright = coatingright, 
+		mtop = coatingtop, 			mbottom = coatingbottom)
+	AT (0, 0, (LengthCurveSeg+deltaz)) RELATIVE PREVIOUS
+ROTATED (AngleRotSegVertical, AngleRotSegHorizontal,0) RELATIVE PREVIOUS 
+
+COMPONENT CurvedGuide4 = Guide_gravity(
+    		w1 = StartWidth+(3)*(EndWidth-StartWidth)/TotalNrSeg, 			h1 = StartHeight+(3)*(EndHeight-StartHeight)/TotalNrSeg, 
+		w2 =StartWidth+(4)*(EndWidth-StartWidth)/TotalNrSeg, 			h2= StartHeight+(4)*(EndHeight-StartHeight)/TotalNrSeg,
+    		l = LengthCurveSeg, 
+		mleft = coatingleft, 			mright = coatingright, 
+		mtop = coatingtop, 			mbottom = coatingbottom)
+	AT (0, 0, (LengthCurveSeg+deltaz)) RELATIVE PREVIOUS
+ROTATED (AngleRotSegVertical, AngleRotSegHorizontal,0) RELATIVE PREVIOUS 
+
+COMPONENT CurvedGuide5 = Guide_gravity(
+    		w1 = StartWidth+(4)*(EndWidth-StartWidth)/TotalNrSeg, 			h1 = StartHeight+(4)*(EndHeight-StartHeight)/TotalNrSeg, 
+		w2 =StartWidth+(5)*(EndWidth-StartWidth)/TotalNrSeg, 			h2= StartHeight+(5)*(EndHeight-StartHeight)/TotalNrSeg,
+    		l = LengthCurveSeg, 
+		mleft = coatingleft, 			mright = coatingright, 
+		mtop = coatingtop, 			mbottom = coatingbottom)
+	AT (0, 0, (LengthCurveSeg+deltaz)) RELATIVE PREVIOUS
+ROTATED (AngleRotSegVertical, AngleRotSegHorizontal,0) RELATIVE PREVIOUS 
+
+COMPONENT CurvedGuide6 = Guide_gravity(
+    		w1 = StartWidth+(5)*(EndWidth-StartWidth)/TotalNrSeg, 			h1 = StartHeight+(5)*(EndHeight-StartHeight)/TotalNrSeg, 
+		w2 =StartWidth+(6)*(EndWidth-StartWidth)/TotalNrSeg, 			h2= StartHeight+(6)*(EndHeight-StartHeight)/TotalNrSeg,
+    		l = LengthCurveSeg, 
+		mleft = coatingleft, 			mright = coatingright, 
+		mtop = coatingtop, 			mbottom = coatingbottom)
+	AT (0, 0, (LengthCurveSeg+deltaz)) RELATIVE PREVIOUS
+ROTATED (AngleRotSegVertical, AngleRotSegHorizontal,0) RELATIVE PREVIOUS 
+
+COMPONENT CurvedGuide7 = Guide_gravity(
+    		w1 = StartWidth+(6)*(EndWidth-StartWidth)/TotalNrSeg, 			h1 = StartHeight+(6)*(EndHeight-StartHeight)/TotalNrSeg, 
+		w2 =StartWidth+(7)*(EndWidth-StartWidth)/TotalNrSeg, 			h2= StartHeight+(7)*(EndHeight-StartHeight)/TotalNrSeg,
+    		l = LengthCurveSeg, 
+		mleft = coatingleft, 			mright = coatingright, 
+		mtop = coatingtop, 			mbottom = coatingbottom)
+	AT (0, 0, (LengthCurveSeg+deltaz)) RELATIVE PREVIOUS
+ROTATED (AngleRotSegVertical, AngleRotSegHorizontal,0) RELATIVE PREVIOUS 
+
+COMPONENT CurvedGuide8 = Guide_gravity(
+    		w1 = StartWidth+(7)*(EndWidth-StartWidth)/TotalNrSeg, 			h1 = StartHeight+(7)*(EndHeight-StartHeight)/TotalNrSeg, 
+		w2 =StartWidth+(8)*(EndWidth-StartWidth)/TotalNrSeg, 			h2= StartHeight+(8)*(EndHeight-StartHeight)/TotalNrSeg,
+    		l = LengthCurveSeg, 
+		mleft = coatingleft, 			mright = coatingright, 
+		mtop = coatingtop, 			mbottom = coatingbottom)
+	AT (0, 0, (LengthCurveSeg+deltaz)) RELATIVE PREVIOUS
+ROTATED (AngleRotSegVertical, AngleRotSegHorizontal,0) RELATIVE PREVIOUS 
+
+COMPONENT CurvedGuide9 = Guide_gravity(
+    		w1 = StartWidth+(8)*(EndWidth-StartWidth)/TotalNrSeg, 			h1 = StartHeight+(8)*(EndHeight-StartHeight)/TotalNrSeg, 
+		w2 =StartWidth+(9)*(EndWidth-StartWidth)/TotalNrSeg, 			h2= StartHeight+(9)*(EndHeight-StartHeight)/TotalNrSeg,
+    		l = LengthCurveSeg, 
+		mleft = coatingleft, 			mright = coatingright, 
+		mtop = coatingtop, 			mbottom = coatingbottom)
+	AT (0, 0, (LengthCurveSeg+deltaz)) RELATIVE PREVIOUS
+ROTATED (AngleRotSegVertical, AngleRotSegHorizontal,0) RELATIVE PREVIOUS 
+
+COMPONENT CurvedGuide10 = Guide_gravity(
+    		w1 = StartWidth+(9)*(EndWidth-StartWidth)/TotalNrSeg, 			h1 = StartHeight+(9)*(EndHeight-StartHeight)/TotalNrSeg, 
+		w2 =StartWidth+(10)*(EndWidth-StartWidth)/TotalNrSeg, 			h2= StartHeight+(10)*(EndHeight-StartHeight)/TotalNrSeg,
+    		l = LengthCurveSeg, 
+		mleft = coatingleft, 			mright = coatingright, 
+		mtop = coatingtop, 			mbottom = coatingbottom)
+	AT (0, 0, (LengthCurveSeg+deltaz)) RELATIVE PREVIOUS
+ROTATED (AngleRotSegVertical, AngleRotSegHorizontal,0) RELATIVE PREVIOUS 
+
+COMPONENT CurvedGuide11 = Guide_gravity(
+    		w1 = StartWidth+(10)*(EndWidth-StartWidth)/TotalNrSeg, 			h1 = StartHeight+(10)*(EndHeight-StartHeight)/TotalNrSeg, 
+		w2 =StartWidth+(11)*(EndWidth-StartWidth)/TotalNrSeg, 			h2= StartHeight+(11)*(EndHeight-StartHeight)/TotalNrSeg,
+    		l = LengthCurveSeg, 
+		mleft = coatingleft, 			mright = coatingright, 
+		mtop = coatingtop, 			mbottom = coatingbottom)
+	AT (0, 0, (LengthCurveSeg+deltaz)) RELATIVE PREVIOUS
+ROTATED (AngleRotSegVertical, AngleRotSegHorizontal,0) RELATIVE PREVIOUS 
+
+COMPONENT CurvedGuide12 = Guide_gravity(
+    		w1 = StartWidth+(11)*(EndWidth-StartWidth)/TotalNrSeg, 			h1 = StartHeight+(11)*(EndHeight-StartHeight)/TotalNrSeg, 
+		w2 =StartWidth+(12)*(EndWidth-StartWidth)/TotalNrSeg, 			h2= StartHeight+(12)*(EndHeight-StartHeight)/TotalNrSeg,
+    		l = LengthCurveSeg, 
+		mleft = coatingleft, 			mright = coatingright, 
+		mtop = coatingtop, 			mbottom = coatingbottom)
+	AT (0, 0, (LengthCurveSeg+deltaz)) RELATIVE PREVIOUS
+ROTATED (AngleRotSegVertical, AngleRotSegHorizontal,0) RELATIVE PREVIOUS 
+
+COMPONENT CurvedGuide13 = Guide_gravity(
+    		w1 = StartWidth+(12)*(EndWidth-StartWidth)/TotalNrSeg, 			h1 = StartHeight+(12)*(EndHeight-StartHeight)/TotalNrSeg, 
+		w2 =StartWidth+(13)*(EndWidth-StartWidth)/TotalNrSeg, 			h2= StartHeight+(13)*(EndHeight-StartHeight)/TotalNrSeg,
+    		l = LengthCurveSeg, 
+		mleft = coatingleft, 			mright = coatingright, 
+		mtop = coatingtop, 			mbottom = coatingbottom)
+	AT (0, 0, (LengthCurveSeg+deltaz)) RELATIVE PREVIOUS
+ROTATED (AngleRotSegVertical, AngleRotSegHorizontal,0) RELATIVE PREVIOUS 
+
+COMPONENT CurvedGuide14 = Guide_gravity(
+    		w1 = StartWidth+(13)*(EndWidth-StartWidth)/TotalNrSeg, 			h1 = StartHeight+(13)*(EndHeight-StartHeight)/TotalNrSeg, 
+		w2 =StartWidth+(14)*(EndWidth-StartWidth)/TotalNrSeg, 			h2= StartHeight+(14)*(EndHeight-StartHeight)/TotalNrSeg,
+    		l = LengthCurveSeg, 
+		mleft = coatingleft, 			mright = coatingright, 
+		mtop = coatingtop, 			mbottom = coatingbottom)
+	AT (0, 0, (LengthCurveSeg+deltaz)) RELATIVE PREVIOUS
+ROTATED (AngleRotSegVertical, AngleRotSegHorizontal,0) RELATIVE PREVIOUS 
+
+COMPONENT CurvedGuide15 = Guide_gravity(
+    		w1 = StartWidth+(14)*(EndWidth-StartWidth)/TotalNrSeg, 			h1 = StartHeight+(14)*(EndHeight-StartHeight)/TotalNrSeg, 
+		w2 =StartWidth+(15)*(EndWidth-StartWidth)/TotalNrSeg, 			h2= StartHeight+(15)*(EndHeight-StartHeight)/TotalNrSeg,
+    		l = LengthCurveSeg, 
+		mleft = coatingleft, 			mright = coatingright, 
+		mtop = coatingtop, 			mbottom = coatingbottom)
+	AT (0, 0, (LengthCurveSeg+deltaz)) RELATIVE PREVIOUS
+ROTATED (AngleRotSegVertical, AngleRotSegHorizontal,0) RELATIVE PREVIOUS 
+
+COMPONENT CurvedGuide16 = Guide_gravity(
+    		w1 = StartWidth+(15)*(EndWidth-StartWidth)/TotalNrSeg, 			h1 = StartHeight+(15)*(EndHeight-StartHeight)/TotalNrSeg, 
+		w2 =StartWidth+(16)*(EndWidth-StartWidth)/TotalNrSeg, 			h2= StartHeight+(16)*(EndHeight-StartHeight)/TotalNrSeg,
+    		l = LengthCurveSeg, 
+		mleft = coatingleft, 			mright = coatingright, 
+		mtop = coatingtop, 			mbottom = coatingbottom)
+	AT (0, 0, (LengthCurveSeg+deltaz)) RELATIVE PREVIOUS
+ROTATED (AngleRotSegVertical, AngleRotSegHorizontal,0) RELATIVE PREVIOUS 
+
+COMPONENT CurvedGuide17 = Guide_gravity(
+    		w1 = StartWidth+(16)*(EndWidth-StartWidth)/TotalNrSeg, 			h1 = StartHeight+(16)*(EndHeight-StartHeight)/TotalNrSeg, 
+		w2 =StartWidth+(17)*(EndWidth-StartWidth)/TotalNrSeg, 			h2= StartHeight+(17)*(EndHeight-StartHeight)/TotalNrSeg,
+    		l = LengthCurveSeg, 
+		mleft = coatingleft, 			mright = coatingright, 
+		mtop = coatingtop, 			mbottom = coatingbottom)
+	AT (0, 0, (LengthCurveSeg+deltaz)) RELATIVE PREVIOUS
+ROTATED (AngleRotSegVertical, AngleRotSegHorizontal,0) RELATIVE PREVIOUS 
+
+COMPONENT CurvedGuide18 = Guide_gravity(
+    		w1 = StartWidth+(17)*(EndWidth-StartWidth)/TotalNrSeg, 			h1 = StartHeight+(17)*(EndHeight-StartHeight)/TotalNrSeg, 
+		w2 =StartWidth+(18)*(EndWidth-StartWidth)/TotalNrSeg, 			h2= StartHeight+(18)*(EndHeight-StartHeight)/TotalNrSeg,
+    		l = LengthCurveSeg, 
+		mleft = coatingleft, 			mright = coatingright, 
+		mtop = coatingtop, 			mbottom = coatingbottom)
+	AT (0, 0, (LengthCurveSeg+deltaz)) RELATIVE PREVIOUS
+ROTATED (AngleRotSegVertical, AngleRotSegHorizontal,0) RELATIVE PREVIOUS 
+
+COMPONENT CurvedGuide19 = Guide_gravity(
+    		w1 = StartWidth+(18)*(EndWidth-StartWidth)/TotalNrSeg, 			h1 = StartHeight+(18)*(EndHeight-StartHeight)/TotalNrSeg, 
+		w2 =StartWidth+(19)*(EndWidth-StartWidth)/TotalNrSeg, 			h2= StartHeight+(19)*(EndHeight-StartHeight)/TotalNrSeg,
+    		l = LengthCurveSeg, 
+		mleft = coatingleft, 			mright = coatingright, 
+		mtop = coatingtop, 			mbottom = coatingbottom)
+	AT (0, 0, (LengthCurveSeg+deltaz)) RELATIVE PREVIOUS
+ROTATED (AngleRotSegVertical, AngleRotSegHorizontal,0) RELATIVE PREVIOUS 
+
+COMPONENT CurvedGuide20 = Guide_gravity(
+    		w1 = StartWidth+(19)*(EndWidth-StartWidth)/TotalNrSeg, 			h1 = StartHeight+(19)*(EndHeight-StartHeight)/TotalNrSeg, 
+		w2 =StartWidth+(20)*(EndWidth-StartWidth)/TotalNrSeg, 			h2= StartHeight+(20)*(EndHeight-StartHeight)/TotalNrSeg,
+    		l = LengthCurveSeg, 
+		mleft = coatingleft, 			mright = coatingright, 
+		mtop = coatingtop, 			mbottom = coatingbottom)
+	AT (0, 0, (LengthCurveSeg+deltaz)) RELATIVE PREVIOUS
+ROTATED (AngleRotSegVertical, AngleRotSegHorizontal,0) RELATIVE PREVIOUS 
+
+COMPONENT CurvedGuide21 = Guide_gravity(
+    		w1 = StartWidth+(20)*(EndWidth-StartWidth)/TotalNrSeg, 			h1 = StartHeight+(20)*(EndHeight-StartHeight)/TotalNrSeg, 
+		w2 =StartWidth+(21)*(EndWidth-StartWidth)/TotalNrSeg, 			h2= StartHeight+(21)*(EndHeight-StartHeight)/TotalNrSeg,
+    		l = LengthCurveSeg, 
+		mleft = coatingleft, 			mright = coatingright, 
+		mtop = coatingtop, 			mbottom = coatingbottom)
+	AT (0, 0, (LengthCurveSeg+deltaz)) RELATIVE PREVIOUS
+ROTATED (AngleRotSegVertical, AngleRotSegHorizontal,0) RELATIVE PREVIOUS 
+
+COMPONENT CurvedGuide22 = Guide_gravity(
+    		w1 = StartWidth+(21)*(EndWidth-StartWidth)/TotalNrSeg, 			h1 = StartHeight+(21)*(EndHeight-StartHeight)/TotalNrSeg, 
+		w2 =StartWidth+(22)*(EndWidth-StartWidth)/TotalNrSeg, 			h2= StartHeight+(22)*(EndHeight-StartHeight)/TotalNrSeg,
+    		l = LengthCurveSeg, 
+		mleft = coatingleft, 			mright = coatingright, 
+		mtop = coatingtop, 			mbottom = coatingbottom)
+	AT (0, 0, (LengthCurveSeg+deltaz)) RELATIVE PREVIOUS
+ROTATED (AngleRotSegVertical, AngleRotSegHorizontal,0) RELATIVE PREVIOUS 
+
+COMPONENT CurvedGuide23 = Guide_gravity(
+    		w1 = StartWidth+(22)*(EndWidth-StartWidth)/TotalNrSeg, 			h1 = StartHeight+(22)*(EndHeight-StartHeight)/TotalNrSeg, 
+		w2 =StartWidth+(23)*(EndWidth-StartWidth)/TotalNrSeg, 			h2= StartHeight+(23)*(EndHeight-StartHeight)/TotalNrSeg,
+    		l = LengthCurveSeg, 
+		mleft = coatingleft, 			mright = coatingright, 
+		mtop = coatingtop, 			mbottom = coatingbottom)
+	AT (0, 0, (LengthCurveSeg+deltaz)) RELATIVE PREVIOUS
+ROTATED (AngleRotSegVertical, AngleRotSegHorizontal,0) RELATIVE PREVIOUS 
+
+COMPONENT CurvedGuide24 = Guide_gravity(
+    		w1 = StartWidth+(23)*(EndWidth-StartWidth)/TotalNrSeg, 			h1 = StartHeight+(23)*(EndHeight-StartHeight)/TotalNrSeg, 
+		w2 =StartWidth+(24)*(EndWidth-StartWidth)/TotalNrSeg, 			h2= StartHeight+(24)*(EndHeight-StartHeight)/TotalNrSeg,
+    		l = LengthCurveSeg, 
+		mleft = coatingleft, 			mright = coatingright, 
+		mtop = coatingtop, 			mbottom = coatingbottom)
+	AT (0, 0, (LengthCurveSeg+deltaz)) RELATIVE PREVIOUS
+ROTATED (AngleRotSegVertical, AngleRotSegHorizontal,0) RELATIVE PREVIOUS 
+
+COMPONENT CurvedGuide25 = Guide_gravity(
+    		w1 = StartWidth+(24)*(EndWidth-StartWidth)/TotalNrSeg, 			h1 = StartHeight+(24)*(EndHeight-StartHeight)/TotalNrSeg, 
+		w2 =StartWidth+(25)*(EndWidth-StartWidth)/TotalNrSeg, 			h2= StartHeight+(25)*(EndHeight-StartHeight)/TotalNrSeg,
+    		l = LengthCurveSeg, 
+		mleft = coatingleft, 			mright = coatingright, 
+		mtop = coatingtop, 			mbottom = coatingbottom)
+	AT (0, 0, (LengthCurveSeg+deltaz)) RELATIVE PREVIOUS
+ROTATED (AngleRotSegVertical, AngleRotSegHorizontal,0) RELATIVE PREVIOUS 
+
+COMPONENT CurvedGuide26 = Guide_gravity(
+    		w1 = StartWidth+(25)*(EndWidth-StartWidth)/TotalNrSeg, 			h1 = StartHeight+(25)*(EndHeight-StartHeight)/TotalNrSeg, 
+		w2 =StartWidth+(26)*(EndWidth-StartWidth)/TotalNrSeg, 			h2= StartHeight+(26)*(EndHeight-StartHeight)/TotalNrSeg,
+    		l = LengthCurveSeg, 
+		mleft = coatingleft, 			mright = coatingright, 
+		mtop = coatingtop, 			mbottom = coatingbottom)
+	AT (0, 0, (LengthCurveSeg+deltaz)) RELATIVE PREVIOUS
+ROTATED (AngleRotSegVertical, AngleRotSegHorizontal,0) RELATIVE PREVIOUS 
+
+COMPONENT CurvedGuide27 = Guide_gravity(
+    		w1 = StartWidth+(26)*(EndWidth-StartWidth)/TotalNrSeg, 			h1 = StartHeight+(26)*(EndHeight-StartHeight)/TotalNrSeg, 
+		w2 =StartWidth+(27)*(EndWidth-StartWidth)/TotalNrSeg, 			h2= StartHeight+(27)*(EndHeight-StartHeight)/TotalNrSeg,
+    		l = LengthCurveSeg, 
+		mleft = coatingleft, 			mright = coatingright, 
+		mtop = coatingtop, 			mbottom = coatingbottom)
+	AT (0, 0, (LengthCurveSeg+deltaz)) RELATIVE PREVIOUS
+ROTATED (AngleRotSegVertical, AngleRotSegHorizontal,0) RELATIVE PREVIOUS 
+
+COMPONENT CurvedGuide28 = Guide_gravity(
+    		w1 = StartWidth+(27)*(EndWidth-StartWidth)/TotalNrSeg, 			h1 = StartHeight+(27)*(EndHeight-StartHeight)/TotalNrSeg, 
+		w2 =StartWidth+(28)*(EndWidth-StartWidth)/TotalNrSeg, 			h2= StartHeight+(28)*(EndHeight-StartHeight)/TotalNrSeg,
+    		l = LengthCurveSeg, 
+		mleft = coatingleft, 			mright = coatingright, 
+		mtop = coatingtop, 			mbottom = coatingbottom)
+	AT (0, 0, (LengthCurveSeg+deltaz)) RELATIVE PREVIOUS
+ROTATED (AngleRotSegVertical, AngleRotSegHorizontal,0) RELATIVE PREVIOUS 
+
+COMPONENT CurvedGuide29 = Guide_gravity(
+    		w1 = StartWidth+(28)*(EndWidth-StartWidth)/TotalNrSeg, 			h1 = StartHeight+(28)*(EndHeight-StartHeight)/TotalNrSeg, 
+		w2 =StartWidth+(29)*(EndWidth-StartWidth)/TotalNrSeg, 			h2= StartHeight+(29)*(EndHeight-StartHeight)/TotalNrSeg,
+    		l = LengthCurveSeg, 
+		mleft = coatingleft, 			mright = coatingright, 
+		mtop = coatingtop, 			mbottom = coatingbottom)
+	AT (0, 0, (LengthCurveSeg+deltaz)) RELATIVE PREVIOUS
+ROTATED (AngleRotSegVertical, AngleRotSegHorizontal,0) RELATIVE PREVIOUS 
+
+COMPONENT CurvedGuide30 = Guide_gravity(
+    		w1 = StartWidth+(29)*(EndWidth-StartWidth)/TotalNrSeg, 			h1 = StartHeight+(29)*(EndHeight-StartHeight)/TotalNrSeg, 
+		w2 =StartWidth+(30)*(EndWidth-StartWidth)/TotalNrSeg, 			h2= StartHeight+(30)*(EndHeight-StartHeight)/TotalNrSeg,
+    		l = LengthCurveSeg, 
+		mleft = coatingleft, 			mright = coatingright, 
+		mtop = coatingtop, 			mbottom = coatingbottom)
+	AT (0, 0, (LengthCurveSeg+deltaz)) RELATIVE PREVIOUS
+ROTATED (AngleRotSegVertical, AngleRotSegHorizontal,0) RELATIVE PREVIOUS 
+
+COMPONENT CurvedGuide31 = Guide_gravity(
+    		w1 = StartWidth+(30)*(EndWidth-StartWidth)/TotalNrSeg, 			h1 = StartHeight+(30)*(EndHeight-StartHeight)/TotalNrSeg, 
+		w2 =StartWidth+(31)*(EndWidth-StartWidth)/TotalNrSeg, 			h2= StartHeight+(31)*(EndHeight-StartHeight)/TotalNrSeg,
+    		l = LengthCurveSeg, 
+		mleft = coatingleft, 			mright = coatingright, 
+		mtop = coatingtop, 			mbottom = coatingbottom)
+	AT (0, 0, (LengthCurveSeg+deltaz)) RELATIVE PREVIOUS
+ROTATED (AngleRotSegVertical, AngleRotSegHorizontal,0) RELATIVE PREVIOUS 
+
+COMPONENT CurvedGuide32 = Guide_gravity(
+    		w1 = StartWidth+(31)*(EndWidth-StartWidth)/TotalNrSeg, 			h1 = StartHeight+(31)*(EndHeight-StartHeight)/TotalNrSeg, 
+		w2 =StartWidth+(32)*(EndWidth-StartWidth)/TotalNrSeg, 			h2= StartHeight+(32)*(EndHeight-StartHeight)/TotalNrSeg,
+    		l = LengthCurveSeg, 
+		mleft = coatingleft, 			mright = coatingright, 
+		mtop = coatingtop, 			mbottom = coatingbottom)
+	AT (0, 0, (LengthCurveSeg+deltaz)) RELATIVE PREVIOUS
+ROTATED (AngleRotSegVertical, AngleRotSegHorizontal,0) RELATIVE PREVIOUS 
+
+COMPONENT CurvedGuide33 = Guide_gravity(
+    		w1 = StartWidth+(32)*(EndWidth-StartWidth)/TotalNrSeg, 			h1 = StartHeight+(32)*(EndHeight-StartHeight)/TotalNrSeg, 
+		w2 =StartWidth+(33)*(EndWidth-StartWidth)/TotalNrSeg, 			h2= StartHeight+(33)*(EndHeight-StartHeight)/TotalNrSeg,
+    		l = LengthCurveSeg, 
+		mleft = coatingleft, 			mright = coatingright, 
+		mtop = coatingtop, 			mbottom = coatingbottom)
+	AT (0, 0, (LengthCurveSeg+deltaz)) RELATIVE PREVIOUS
+ROTATED (AngleRotSegVertical, AngleRotSegHorizontal,0) RELATIVE PREVIOUS 
+
+COMPONENT CurvedGuide34 = Guide_gravity(
+    		w1 = StartWidth+(33)*(EndWidth-StartWidth)/TotalNrSeg, 			h1 = StartHeight+(33)*(EndHeight-StartHeight)/TotalNrSeg, 
+		w2 =StartWidth+(34)*(EndWidth-StartWidth)/TotalNrSeg, 			h2= StartHeight+(34)*(EndHeight-StartHeight)/TotalNrSeg,
+    		l = LengthCurveSeg, 
+		mleft = coatingleft, 			mright = coatingright, 
+		mtop = coatingtop, 			mbottom = coatingbottom)
+	AT (0, 0, (LengthCurveSeg+deltaz)) RELATIVE PREVIOUS
+ROTATED (AngleRotSegVertical, AngleRotSegHorizontal,0) RELATIVE PREVIOUS 
+
+COMPONENT CurvedGuide35 = Guide_gravity(
+    		w1 = StartWidth+(34)*(EndWidth-StartWidth)/TotalNrSeg, 			h1 = StartHeight+(34)*(EndHeight-StartHeight)/TotalNrSeg, 
+		w2 =StartWidth+(35)*(EndWidth-StartWidth)/TotalNrSeg, 			h2= StartHeight+(35)*(EndHeight-StartHeight)/TotalNrSeg,
+    		l = LengthCurveSeg, 
+		mleft = coatingleft, 			mright = coatingright, 
+		mtop = coatingtop, 			mbottom = coatingbottom)
+	AT (0, 0, (LengthCurveSeg+deltaz)) RELATIVE PREVIOUS
+ROTATED (AngleRotSegVertical, AngleRotSegHorizontal,0) RELATIVE PREVIOUS 
+
+COMPONENT CurvedGuide36 = Guide_gravity(
+    		w1 = StartWidth+(35)*(EndWidth-StartWidth)/TotalNrSeg, 			h1 = StartHeight+(35)*(EndHeight-StartHeight)/TotalNrSeg, 
+		w2 =StartWidth+(36)*(EndWidth-StartWidth)/TotalNrSeg, 			h2= StartHeight+(36)*(EndHeight-StartHeight)/TotalNrSeg,
+    		l = LengthCurveSeg, 
+		mleft = coatingleft, 			mright = coatingright, 
+		mtop = coatingtop, 			mbottom = coatingbottom)
+	AT (0, 0, (LengthCurveSeg+deltaz)) RELATIVE PREVIOUS
+ROTATED (AngleRotSegVertical, AngleRotSegHorizontal,0) RELATIVE PREVIOUS 
+
+COMPONENT CurvedGuide37 = Guide_gravity(
+    		w1 = StartWidth+(36)*(EndWidth-StartWidth)/TotalNrSeg, 			h1 = StartHeight+(36)*(EndHeight-StartHeight)/TotalNrSeg, 
+		w2 =StartWidth+(37)*(EndWidth-StartWidth)/TotalNrSeg, 			h2= StartHeight+(37)*(EndHeight-StartHeight)/TotalNrSeg,
+    		l = LengthCurveSeg, 
+		mleft = coatingleft, 			mright = coatingright, 
+		mtop = coatingtop, 			mbottom = coatingbottom)
+	AT (0, 0, (LengthCurveSeg+deltaz)) RELATIVE PREVIOUS
+ROTATED (AngleRotSegVertical, AngleRotSegHorizontal,0) RELATIVE PREVIOUS 
+
+ 
+
+COMPONENT armEndCurved = Arm()
+ AT (0, 0, LengthCurveSeg+deltaz) RELATIVE PREVIOUS
+
+COMPONENT Lam = L_monitor(
+    nL = 160, filename = "Lambda.dat", xwidth = 0.05, yheight = 0.05,
+    Lmin = lmin, Lmax = lmax, restore_neutron = 1)         
+AT (0, 0, deltaz/16) RELATIVE PREVIOUS
+
+/* ---------------------- 1st Straight Segment ------------------------- */
+
+COMPONENT StraightSegment = Guide_gravity(
+    		w1 = EndWidth, 			h1 = EndHeight, 
+		w2 = EndWidth, 			h2 = EndHeight, 
+    		l = 3.5, 		
+		mleft = 1, 			mright = 1, 		
+		mtop = 1, 			mbottom = 1)
+	AT (0, 0, 3*deltaz) RELATIVE armEndCurved 
+
+/* ---------------------- Secondary Shutter ------------------------- */
+
+COMPONENT armSecondaryShutter_1 = Arm()
+  AT (0, 0, 3.5+deltaz) RELATIVE PREVIOUS
+
+COMPONENT Slit_secondary_shutter_1_1 = Slit(
+    	xwidth = EndWidth, 
+	yheight = EndHeight)
+  AT (0, 0, 0.3) RELATIVE PREVIOUS
+
+/* ---------------------- Beam characteristics at Bunker Exit  ------------------------- */
+
+COMPONENT psdGuide2 = PSD_monitor(
+    	  	filename = "PostCurvedGuide_psd", 
+		xwidth = EndWidth, 			yheight = EndHeight)
+	AT (0, 0, deltaz/8) RELATIVE PREVIOUS
+
+COMPONENT toflGuide2 = TOFLambda_monitor(
+    	  	nL = 500, 
+		nt = 500, 
+		filename = "PostCurvedGuide_tofl", 
+		tmin = Lower_bound_postCurvedGuide,
+    	  	tmax = Upper_bound_postCurvedGuide, 
+		xwidth = EndWidth, 			yheight = EndHeight, 
+		Lmin = LambdaMin,			Lmax = LambdaMax)
+	AT (0, 0, deltaz/4) RELATIVE PREVIOUS
+
+COMPONENT divlGuide2 = DivLambda_monitor(
+    	  	nL = 100, 				nh = 100, 
+		filename = "PostCurvedGuide_divl",
+	  	xwidth = EndWidth, 			yheight = EndHeight,
+		Lmin = LambdaMin, 		Lmax = LambdaMax, 
+		maxdiv_h = 0.5)
+	AT (0, 0, deltaz/2) RELATIVE PREVIOUS
+
+/* --------------- Chopper 1 -------------------- */
+
+COMPONENT LmonChopper1 = L_monitor(
+    		nL = 1000,
+		filename = "PreChopper1_lambda",
+    		xwidth = EndWidth*2, 
+		yheight = EndHeight*2, 
+		Lmin = LambdaMin,
+    		Lmax = LambdaMax)
+  	AT (0, 0, deltaz) RELATIVE PREVIOUS
+
+COMPONENT toflPreChopper1 = TOFLambda_monitor(
+    	  	nL = 500, 
+		nt = 500, 
+		filename = "PreChopper1_tofl", 
+		tmin = 10E3,
+    	  	tmax = 30E3, 
+		xwidth = EndWidth*2, 			yheight = EndHeight*2, 
+		Lmin = LambdaMin,			Lmax = LambdaMax)
+	AT (0, 0, 2*deltaz) RELATIVE PREVIOUS
+
+
+COMPONENT Chopper1 = DiskChopper(
+	radius=0.35, yheight=0.05, theta_0=77.7, nslit=1, nu=14, delay= (2.675*28.4)/3956.03, abs_out =1)
+	AT (0, 0, 0.1) RELATIVE PREVIOUS
+
+COMPONENT LmonChopper1_1 = L_monitor(
+    		nL = 1000,
+		filename = "PostChopper1_lambda",
+    		xwidth = EndWidth*2, 			yheight = EndHeight*2,
+		Lmin = LambdaMin,
+    		Lmax = LambdaMax)
+  	AT (0, 0, 3*deltaz) RELATIVE PREVIOUS
+
+COMPONENT toflPostChopper1 = TOFLambda_monitor(
+    	  	nL = 500, 
+		nt = 500, 
+		filename = "PostChopper1_tofl", 
+		tmin = 10E3,
+    	  	tmax = 30E3, 
+		xwidth = EndWidth*2, 			yheight = EndHeight*2,
+		Lmin = LambdaMin,			Lmax = LambdaMax)
+	AT (0, 0, 4*deltaz) RELATIVE PREVIOUS
+/* --------------------- End chopper1 -------------------------- */
+
+COMPONENT armEndChopper1 = Arm()
+ AT (0, 0, 0.1) RELATIVE PREVIOUS
+
+COMPONENT NeutronGuide5_2 = Guide_gravity(
+    w1 = EndWidth, 			h1 = EndHeight, 
+		w2 = EndWidth, 			h2 = EndHeight, 
+	l = 22.45,
+	m = 1)
+  AT (0, 0, 0) RELATIVE PREVIOUS
+
+/* --------------- Chopper 2 -------------------- */
+COMPONENT armChopper2 = Arm()
+ AT (0, 0, 22.45+ deltaz) RELATIVE PREVIOUS
+
+COMPONENT LmonChopper2_1 = L_monitor(
+    		nL = 1000,
+		filename = "PreChopper2_lambda",
+    				xwidth = EndWidth*2, 			yheight = EndHeight*2,
+		Lmin = LambdaMin,
+    		Lmax = LambdaMax)
+  	AT (0, 0, 0) RELATIVE PREVIOUS
+
+COMPONENT toflPreChopper2 = TOFLambda_monitor(
+    	  	nL = 500, 
+		nt = 500, 
+		filename = "PreChopper2_tofl", 
+		tmin = 20E3,
+    	  	tmax = 50E3, 
+			xwidth = EndWidth*2, 			yheight = EndHeight*2,
+		Lmin = LambdaMin,			Lmax = LambdaMax)
+	AT (0, 0, deltaz) RELATIVE PREVIOUS
+
+/*COMPONENT Chopper2A = DiskChopper(
+	radius=0.35, yheight=0.05, theta_0=128, nslit=1, nu=14, delay= (2.675*50.973)/3956.03, abs_out =1)
+	AT (0, 0, 0.025) RELATIVE PREVIOUS
+*/
+
+COMPONENT Chopper2A = DiskChopper(
+				  radius=0.35, yheight=0.05, theta_0=140, nslit=1, nu=14, delay= (2.675*50.973)/3956.03, abs_out =1) 
+  //radius=0.35, yheight=0.05, theta_0=140, nslit=1, nu=14, delay=0, phase=Phase2A, abs_out =1)
+	AT (0, 0, 0.025) RELATIVE PREVIOUS
+
+COMPONENT Chopper2B = DiskChopper(
+				  radius=0.35, yheight=0.05, theta_0=140, nslit=1, nu=14, delay=((2.675*50.998)/3956.03+(140.0-60)/(360.0*14)), abs_out =1)
+  //radius=0.35, yheight=0.05, theta_0=140, nslit=1, nu=14, delay=0, phase=Phase2B, abs_out =1)
+	AT (0, 0, 0.025) RELATIVE PREVIOUS
+
+
+COMPONENT LmonChopper2_2 = L_monitor(
+    		nL = 1000,
+		filename = "PostChopper2_lambda",
+    				xwidth = EndWidth*2, 			yheight = EndHeight*2,
+		Lmin = LambdaMin,
+    		Lmax = LambdaMax) 
+  	AT (0, 0, deltaz) RELATIVE PREVIOUS
+
+COMPONENT toflPostChopper2 = TOFLambda_monitor(
+    	  	nL = 500, 
+		nt = 500, 
+		filename = "PostChopper2_tofl", 
+		tmin = 20E3,
+    	  	tmax = 50E3,  
+				xwidth = EndWidth*2, 			yheight = EndHeight*2,
+		Lmin = LambdaMin,			Lmax = LambdaMax)
+	AT (0, 0, deltaz) RELATIVE PREVIOUS
+/* --------------------- End chopper2 -------------------------- */
+
+COMPONENT armEndChopper2 = Arm()
+ AT (0, 0, 0.1) RELATIVE armChopper2
+
+/* --------------- Start long straight guide -------------------- */
+
+COMPONENT NeutronGuide7 = Guide_gravity(
+    	w1 = EndWidth, 			h1 = EndHeight, 
+		w2 = EndWidth, 			h2 = EndHeight, 
+	l = 92.813,
+	m = 1)
+  AT (0, 0, 0) RELATIVE PREVIOUS
+
+/* --------------- End long straight guide -------------------- */
+
+
+COMPONENT armEndStraight2 = Arm()
+ AT (0, 0, 92.813 + deltaz) RELATIVE PREVIOUS
+
+COMPONENT psdPostStraightGuide2 = PSD_monitor(
+    	  	filename = "PostLongStraightGuide_psd", 
+		xwidth = EndWidth*2, 			yheight = EndHeight*2)
+	AT (0, 0, deltaz/8) RELATIVE armEndStraight2
+
+COMPONENT toflGuide3 = TOFLambda_monitor(
+    	  	nL = 500, 
+		nt = 500, 
+		filename = "PostLongStraightGuide_tofl", 
+		tmin = Lower_bound_postStraightGuide2,
+    	  	tmax = Upper_bound_postStraightGuide2, 
+		xwidth = EndWidth*2, 			yheight = EndHeight*2,
+		Lmin = L_min-0.1, 		Lmax = L_max+0.1)
+	AT (0, 0, deltaz/4) RELATIVE armEndStraight2
+
+COMPONENT divlGuide3 = DivLambda_monitor(
+    	  	nL = 100, 				nh = 100, 
+		filename = "PostLongStraightGuide_divl",
+	  	xwidth = EndWidth*2, 			yheight = EndHeight*2,
+		Lmin = L_min, 		Lmax = L_max, 
+		maxdiv_h = 0.5)
+	AT (0, 0, deltaz/2) RELATIVE armEndStraight2
+
+COMPONENT divlGuide4 = DivLambda_monitor(
+    	  	nL = 100, 				nh = 100, 
+		filename = "PostLongStraightGuideDetail_divl",
+	  	xwidth = EndWidth*2, 			yheight = EndHeight*2,
+		Lmin = L_min, 		Lmax = L_max, 
+		maxdiv_h = 0.05)
+	AT (0, 0, deltaz/1.5) RELATIVE armEndStraight2
+
+/* --------------- Focusing guide -------------------- */
+
+COMPONENT armStartFocusing = Arm()
+ AT (0, 0, deltaz) RELATIVE armEndStraight2
+
+
+COMPONENT EllipticGuide = Elliptic_guide_gravity(
+	l=10, linxw=1000, linyh=1000, loutxw=9, loutyh=9, 
+	xwidth=EndWidth, yheight=EndHeight, seglength=SegmentArray,
+	R0 = 0.99,Qc=0.0219,alpha=6.07,m=1,W=0.003,
+	dimensionsAt = "entrance")
+ AT (0, 0, 2*deltaz) RELATIVE PREVIOUS
+
+/*
+COMPONENT FocusingGuide = Guide_gravity(
+    	w1 = EndWidth, 			h1 = EndHeight, 
+		w2 = 0.02, 			h2 = 0.02, 
+	l = 10,
+	m = 1)
+
+  AT (0, 0, 2*deltaz) RELATIVE PREVIOUS
+*/
+/* --------------- End long straight guide -------------------- */
+
+COMPONENT armEndFocusing = Arm()
+ AT (0, 0, 10 + deltaz) RELATIVE PREVIOUS
+
+COMPONENT psdPostFocusinGuide = PSD_monitor(
+    	  	filename = "PostFocusinGuide_psd", 
+		xwidth = EndWidth, 			yheight = EndHeight)
+	AT (0, 0, deltaz/8) RELATIVE armEndFocusing
+
+COMPONENT toflPostFocusinGuide = TOFLambda_monitor(
+    	  	nL = 500, 
+		nt = 500, 
+		filename = "PostFocusinGuide_tofl", 
+		tmin = Lower_bound_postStraightGuide2,
+    	  	tmax = Upper_bound_postStraightGuide2, 
+		xwidth = EndWidth, 			yheight = EndHeight,
+		Lmin = L_min-0.1, 		Lmax = L_max+0.1)
+	AT (0, 0, deltaz/4) RELATIVE armEndFocusing
+
+COMPONENT divlPostFocusinGuide = DivLambda_monitor(
+    	  	nL = 100, 				nh = 100, 
+		filename = "PostFocusinGuide_divl",
+	  	xwidth = EndWidth, 			yheight = EndHeight,
+		Lmin = L_min, 		Lmax = L_max, 
+		maxdiv_h = 0.5)
+	AT (0, 0, deltaz/2) RELATIVE armEndFocusing
+
+
+	COMPONENT divAfterFocusing=Divergence_monitor(
+		nh=100, nv=100, 
+		filename="PostFocusingDIVVDIVH.pos",
+        xwidth = 0.01, 			yheight = 0.01,
+          maxdiv_h=0.2,  maxdiv_v=0.2)
+AT (0, 0, deltaz/1.75) RELATIVE armEndFocusing
+
+
+COMPONENT divlPostFocusinGuide2 = DivLambda_monitor(
+    	  	nL = 100, 				nh = 100, 
+		filename = "PostFocusinGuideDetail_divl",
+	  	xwidth = EndWidth, 			yheight = EndHeight,
+		Lmin = L_min, 		Lmax = L_max, 
+		maxdiv_h = 0.05)
+	AT (0, 0, deltaz/1.5) RELATIVE armEndFocusing
+
+/*
+COMPONENT FrameOverlapMirror_start = Slit(
+    		xwidth = FOM_width, 
+		yheight = FOM_height)
+  AT (0, 0, deltaz) RELATIVE armEndFocusing
+
+COMPONENT FrameOverlapMirror_end = Slit(
+    		xwidth = FOM_width, 
+		yheight = FOM_height)
+  AT (0, 0, 0.5) RELATIVE armEndFocusing
+
+
+COMPONENT SecondaryShutter2_start = Slit(
+   		xwidth = SecondaryShutter2_width, 
+		yheight = SecondaryShutter2_height)
+  AT (0, 0, 0.5) RELATIVE PREVIOUS
+ 
+ COMPONENT SecondaryShutter2_end = Slit(
+     		xwidth = SecondaryShutter2_width, 
+ 		yheight = SecondaryShutter2_height)
+  AT (0, 0, 0.3) RELATIVE PREVIOUS
+*/
+ COMPONENT Slit_1 = Slit(
+    		xwidth = Slit1_width, 
+	yheight = Slit1_height)
+   AT (0, 0, 0.5) RELATIVE PREVIOUS
+
+COMPONENT Scraper_1 = Slit(
+    		xwidth = 0.03, 
+		yheight = 0.03)
+  AT (0, 0, 0.15) RELATIVE PREVIOUS
+
+COMPONENT Scraper_2 = Slit(
+    		xwidth = 0.03, 
+		yheight = 0.03)
+  AT (0, 0, 0.55) RELATIVE PREVIOUS
+
+COMPONENT Scraper_3 = Slit(
+    		xwidth = 0.03, 
+		yheight = 0.03)
+  AT (0, 0, 0.85) RELATIVE PREVIOUS
+
+
+COMPONENT Slit_2 = Slit(
+    		xwidth = Slit2_width, 
+		yheight = Slit2_height)
+  AT (0, 0, 0.1) RELATIVE PREVIOUS
+
+
+COMPONENT psdPrePinhole = PSD_monitor(
+    	  	filename = "PrePinhole_psd", 
+		xwidth = 0.03, 			yheight = 0.03)
+	AT (0, 0, 0.69-deltaz) RELATIVE PREVIOUS
+
+COMPONENT PinholeCollimator = Slit(
+    	xwidth = PinholeCollimator_width,
+    	yheight = PinholeCollimator_height)
+  AT (0, 0, 0.69) RELATIVE PREVIOUS
+
+
+/* ------------------------ Sample ------------------------- */
+COMPONENT armSample = Arm()
+ AT (0, 0, 0.01) RELATIVE PREVIOUS
+
+
+COMPONENT sampleMantid = Arm() 
+ AT (0, 0, 0)  RELATIVE  PREVIOUS
+ 
+
+COMPONENT psdSample = PSD_monitor(
+    	  	filename = "Sample_psd", 
+		xwidth = 0.03, 			yheight = 0.03)
+	AT (0, 0, deltaz/8) RELATIVE armSample
+
+COMPONENT divAtSample=Divergence_monitor(
+		nh=100, nv=100, 
+		filename="At_SampleDIVVDIVH.pos",
+        xwidth = 0.005, 			yheight = 0.005,
+          maxdiv_h=0.2,  maxdiv_v=0.2)
+
+AT (0, 0, deltaz/6) RELATIVE armSample
+
+COMPONENT divAtSampleOverview=Divergence_monitor(
+		nh=100, nv=100, 
+		filename="At_SampleOverviewDIVVDIVH.pos",
+        xwidth = 0.005, 			yheight = 0.005,
+          maxdiv_h=0.5,  maxdiv_v=0.5)
+AT (0, 0, deltaz/5) RELATIVE armSample
+
+COMPONENT toflSample = TOFLambda_monitor(
+    	  	nL = 500, 
+		nt = 500, 
+		filename = "Sample_tofl", 
+		tmin = Lower_bound_sample,
+    	  	tmax = Upper_bound_sample, 
+		xwidth = XtalSize_width, 		yheight = XtalSize_height, 
+		Lmin = L_min -0.1, 		Lmax = L_max+0.1)
+	AT (0, 0, deltaz/4) RELATIVE armSample
+
+COMPONENT divlSample = DivLambda_monitor(
+    	  	nL = 100, 				nh = 100, 
+		filename = "sample_divl",
+		xwidth = XtalSize_width, 		yheight = XtalSize_height, 
+		Lmin = L_min, 		Lmax = L_max, 
+		maxdiv_h = 0.5)
+	AT (0, 0, deltaz/2) RELATIVE armSample
+
+
+SPLIT 600 COMPONENT Xtal = Single_crystal(
+ 		order = 1, 
+ 		p_transmit=0.001,
+        reflections = "Rubredoxin.lau",
+        xwidth = XtalSize_width, 
+ 		yheight = XtalSize_height, 
+ 		zdepth = XtalSize_depth, 
+ 	 	mosaic = XtalMosaicity,
+		delta_d_d=1e-4)
+   AT (0, 0, deltaz) RELATIVE PREVIOUS
+   ROTATED (XtalPhiX,XtalPhiY, 0) RELATIVE armSample
+ EXTEND %{
+   	if (!SCATTERED) {ABSORB;}
+  %}  
+
+COMPONENT Sphere = PSD_monitor_4PI(
+    nx = 360, ny = 360, filename = "4pi", radius = 0.2,
+    restore_neutron = 1)
+  
+AT (0, 0, deltaz) RELATIVE armSample
+
+/* ---------------------- Detector ------------------------- */
+
+COMPONENT armDetector = Arm()
+	AT (0, 0, deltaz) RELATIVE PREVIOUS
+	ROTATED (0, TT, 0) RELATIVE armSample
+
+COMPONENT TOF_det = TOF_monitor(
+nt=100, filename = "TOFdet", xmin = 0, xmax = 0,
+	
+xwidth = 0.02, yheight = 0.02, tmin = 100e3, tmax = 180e3,
+    restore_neutron = 1)
+	
+AT (0.02, 0, DetectorDist-deltaz) RELATIVE armDetector
+
+
+/*
+COMPONENT Detector = Monitor_nD(
+    		xwidth = DetectorX, 
+		yheight = DetectorY, 
+		zdepth = 0, 
+		options = "list all x y time intensity")
+	AT (0, 0, DetectorDist) RELATIVE armDetector
+*/
+
+
+COMPONENT nD_Mantid_0 = Monitor_nD(
+        options ="mantid square x limits=[-0.3 0.3] bins=1280 y limits=[-0.3 0.3] bins=1280, neutron pixel min=0 t, list all neutrons",
+    xmin = -0.3,
+    xmax = 0.3,
+    ymin = -0.3,
+    ymax = 0.3,
+    restore_neutron = 1,
+    filename = "bank01_events.dat")
+  AT (0, 0, 0.30) RELATIVE armSample
+
+
+
+COMPONENT psdDetector = PSD_monitor(
+    		filename = "Detector_psd", 
+		xwidth = DetectorX, 
+		yheight = DetectorY)
+	AT (0, 0, DetectorDist+deltaz) RELATIVE armDetector
+
+
+
+END
