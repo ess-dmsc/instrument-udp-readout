@@ -35,15 +35,15 @@ extern "C" {
   // Add a readout value to the transmission buffer of the BIFROST Readout object
   // Automatically transmits the packet if it is full.
   void nmx_readout_add(
-      nmx_readout_t* br, uint8_t ring, uint8_t fen,
-      uint32_t time_high, uint32_t time_low,
-      uint8_t tube, uint16_t amplitude_a, uint16_t amplitude_b
+      nmx_readout_t* br, uint8_t Ring, uint8_t FEN, uint32_t TimeHigh, uint32_t TimeLow,
+                 uint8_t VMM, uint8_t Channel
   )
   {
     NMXReadout* obj;
     if (br == NULL) return;
     obj = static_cast<NMXReadout*>(br->obj);
-    obj->addReadout(ring, fen, time_high, time_low, tube, amplitude_a, amplitude_b);
+    obj->addReadout(Ring, FEN, TimeHigh, TimeLow,
+                 VMM, Channel);
   }
 
   // Send the current data buffer for the BIFROST Readout object

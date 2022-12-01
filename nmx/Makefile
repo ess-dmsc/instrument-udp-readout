@@ -1,10 +1,10 @@
 # Makefile for NMX
 
 # Do not edit these
-INSTR=NMX_Mantid.instr
+INSTR=NMX_Mantid
 COMPS=Event_broadcaster.comp
-WRAPSRC=src/wrapper.cpp src/MiraclesReadout.cpp ../common/GenericReadout.cpp
-WRAPINC=src/wrapper.h src/MiraclesReadout.h ../common/GenericReadout.h
+WRAPSRC=src/wrapper.cpp src/NMXReadout.cpp ../common/GenericReadout.cpp
+WRAPINC=src/wrapper.h src/NMXReadout.h ../common/GenericReadout.h
 INCLUDE=-I . -I src -I ../common
 LIB=libwrapper.so
 

@@ -1,0 +1,111 @@
+DEFINE COMPONENT Event_broadcaster
+DEFINITION PARAMETERS()
+SETTING PARAMETERS (
+string ip = 0,
+int port = 9000,
+int broadcast = 1,
+string user1=""
+)
+OUTPUT PARAMETERS ()
+DEPENDENCY "-I src -L. -lwrapper"
+SHARE
+%{
+#include <sys/time.h>
+#include <stdlib.h>
+#include <stdint.h>
+#include <wrapper.h>
+
+#include <unistd.h>
+
+  struct efu_time {
+    uint32_t hi;
+    uint32_t lo;
+  };
+  typedef struct efu_time efu_time_t;
+
+  void throw_error(char* named, char* variable){
+    printf("Event_broadcaster: %s: Particle variable %s inaccessible, exiting.\n", named, variable);
+    exit(-1);
+  }
+
+  //
+  // Functions for calculating digital identifiers below
+  //
+
+ 
+%}
+
+
+
+
+DECLARE
+%{
+// pre-declare the stateful object
+nmx_readout_t* nmx;
+efu_time_t last_time;
+efu_time_t repetition_time;
+efu_time_t offset_time;
+efu_time_t now_time;
+int readouts;
+%}
+
+INITIALIZE
+%{
+  readouts = 0;
+
+  // Include the header file and run any initialization for the real broadcaster
+  if (ip == 0 || ip[0] == '\0'){
+  	nmx = nmx_readout_create("127.0.0.1", port);
+  } else {
+  	nmx = nmx_readout_create(ip, port);
+  }
+
+  nmx_readout_setPulseTime(nmx, 0, 0, 0, 0);
+  nmx_readout_newPacket(nmx);
+
+%}
+
+TRACE
+%{
+  uint8_t RING;
+  uint8_t FEN=0;
+
+  double TOF;
+  double t0;
+  int fail;
+
+
+  if (broadcast && readouts > 10){
+	  // TODO combine these three into a single 'flush' call?
+    printf("Sending 10 readouts\n");
+	  nmx_readout_send(nmx);
+		nmx_readout_newPacket(nmx);
+	  nmx_readout_setPulseTime(nmx, 0, 0, 0, 0);
+    readouts=0;
+	}
+
+ // t0 = particle_getvar(_particle, user1, &fail);
+  t0 = 0;
+
+  // Send the event to the broadcaster to be accumulated and broadcast
+  if (broadcast) {
+        printf("\n xyzt %f, %f, %f, %f\n", x, y, z, t);
+        nmx_readout_add(nmx, 2 * RING, FEN, 0, 0, 0, 0);
+        readouts++;
+  }
+%}
+
+FINALLY
+%{
+  // perform any teardown of the stateful broadcaster
+  if (broadcast) {
+    nmx_readout_send(nmx);
+  }
+  nmx_readout_destroy(nmx);
+%}
+
+MCDISPLAY
+%{
+%}
+
+END

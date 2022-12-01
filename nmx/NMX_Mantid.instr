@@ -44,13 +44,15 @@ DEFINE INSTRUMENT NMX_Mantid(
 	DetectorY = 0.6, 
 	TT = 30,
 	Phase2A=173.7140,
-	Phase2B=253.7992)
+	Phase2B=253.7992,
+	int sendPackets=0)
 
 DECLARE
 %{
 
 //This is the declare function form the new moderator module
 //double lambdamin,lambdamax;
+	char sendTo[256]; // ip address for udp data transmission
   int sgn;
   double cosa,sina;
   double ctrX,ctrZ,BX0,BZ0;
@@ -1171,6 +1173,10 @@ COMPONENT psdDetector = PSD_monitor(
 		yheight = DetectorY)
 	AT (0, 0, DetectorDist+deltaz) RELATIVE armDetector
 
+// MJC added 'broadcaster' component proof of concept
+COMPONENT event_broadcaster = Event_broadcaster(user1="t0_SAM", ip=sendTo, broadcast=sendPackets)
+// None of the AT ... matters as the broadcaster accepts all events which have made it this far through the instrument.
+AT(0,0,0) RELATIVE armDetector
 
 
 END
