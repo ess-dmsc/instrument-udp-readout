@@ -1382,7 +1382,7 @@ AT (0,0.0,0) RELATIVE arm_sample
 //
 // Monitor that may mimic the physical finel 3He detectors
 COMPONENT between_Analyzer_and_Detector_Banana = Monitor_nD( // orig
-    options  = "banana theta limits=[0,180] bins=180 y limits=[-1.5, 1.5]    bins=200, incoming", //OK
+    options  = "banana theta limits=[0,180] bins=60 y limits=[-0.3143, 0.3143] bins=100, incoming", //OK
     filename = "between_Analyzer_and_Detector_Banana",
     yheight  = 8*0.5,
     radius   = 1*0.25,
@@ -1390,8 +1390,7 @@ COMPONENT between_Analyzer_and_Detector_Banana = Monitor_nD( // orig
 AT (0, 0, 0) RELATIVE arm_sample
 EXTEND %{
   // POS-TIME AT END
-  //printf("\n xyz %f, %f, %f\n", x, y, z);
-  printf("\n xyzt %f, %f, %f, %f\n", x, y, z, t);
+  //printf("\n xyztp %f, %f, %f, %f, %f\n", x, y, z, t, p);
 %}
 //
 
@@ -1453,9 +1452,9 @@ SAVE
     printf(" \n");
 
 
-    // print here any other parameter:  
+    // print here any other parameter:
 
-    /*  
+    /*
     // chopper parameters check
     // printing chopper[6][10] parameters
     // outer loop for row
@@ -1463,7 +1462,7 @@ SAVE
        for(int j=0; j<10; j++) {
             printf("%d ", chopper[i][j]);
 	    }
-       printf("\n"); 
+       printf("\n");
       }
      */
 

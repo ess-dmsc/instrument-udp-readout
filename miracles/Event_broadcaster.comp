@@ -83,8 +83,8 @@ SHARE
   // also (guessing) tubepair may be uptide down for lower banks and
   // this A anb B might be swapped.
   void getAmplitudes(double y, int AorB, uint16_t * A, uint16_t * B) {
-    double ymin =       0.133; // m
-    double tubeheight = 0.150; // m
+    double ymin =       0.1365; // m
+    double tubeheight = 0.1778; // m
 
     if ((fabs(y) < ymin) || (fabs(y) > (ymin + tubeheight))) {
       //printf("y-value %f outside tube\n", y);
@@ -95,14 +95,13 @@ SHARE
 
     double pos = (fabs(y) - ymin)/tubeheight; // between 0.0 and 1.0
 
-    // for now hardcode A and B to the upper 1/8'th of a tube
     // TODO needs fixing (maybe)
     if (AorB == 0 ) { // A-end of tube
-      *A = 7000 * (1.0 - pos);
+      *A = round(7000 * (1.0 - pos));
       *B = 7000;
     } else { // B-end of tube
       *A = 7000;
-      *B = 7000 * (1.0 - pos);
+      *B = round(7000 * (1.0 - pos));
     }
     return;
   }
@@ -113,10 +112,6 @@ DECLARE
 %{
 // pre-declare the stateful object
 miracles_readout_t* miracles;
-efu_time_t last_time;
-efu_time_t repetition_time;
-efu_time_t offset_time;
-efu_time_t now_time;
 int readouts;
 %}
 
@@ -162,6 +157,7 @@ TRACE
 
   // Send the event to the broadcaster to be accumulated and broadcast
   if (broadcast) {
+    int i;
     // int masked = (y > z*0.50 + 0.14 ) ? 1 : 0;
     // int masked = ((y > 0.14) || (y < 0.13)) ? 1 : 0;
     int masked = 0;
@@ -188,8 +184,10 @@ TRACE
         //printf("\n NEUTRON at theta %f, hetube %u, tube_pair %u (x,y,z %f %f %f), t %.0f(us)\n", theta, hetube, tube_pair, x, y, z, t*1000000);
         printf("READOUT - RING %u, FEN %u, TUBE %2u (hetube %2u) - A %5u, B %5u, TOF %10u (ns), TICKS %10u\n", \
                RING, FEN, TubePair, hetube, A, B, (int)TOF, TOFInTicks);
-        miracles_readout_add(miracles, 2 * RING, FEN, 0, (int)TOFInTicks, TubePair, A, B);
-        readouts++;
+        for (i = 0; i < p; i++) {
+          miracles_readout_add(miracles, 2 * RING, FEN, 0, (int)TOFInTicks, TubePair, A, B);
+          readouts++;
+        }
       }
     } else {
       printf("Readout discarded by mask: y %f, z %f\n", y, z);
