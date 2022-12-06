@@ -13,7 +13,7 @@ class NMXReadout : public GenericReadout {
 public:
   using GenericReadout::GenericReadout;
 
-  static constexpr uint8_t Detector{56};
+  static constexpr uint8_t Detector{68};
 
   // As per NMX ICD
   struct NMXData {
