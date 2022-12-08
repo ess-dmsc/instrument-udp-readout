@@ -1132,6 +1132,13 @@ COMPONENT Sphere = PSD_monitor_4PI(
   
 AT (0, 0, deltaz) RELATIVE armSample
 
+
+// MJC added 'broadcaster' component proof of concept
+COMPONENT event_broadcaster = Event_broadcaster(user1="t0_SAM", ip=sendTo, broadcast=sendPackets)
+// None of the AT ... matters as the broadcaster accepts all events which have made it this far through the instrument.
+AT(0,0,0) RELATIVE armSample
+
+
 /* ---------------------- Detector ------------------------- */
 
 COMPONENT armDetector = Arm()
@@ -1145,6 +1152,7 @@ xwidth = 0.02, yheight = 0.02, tmin = 100e3, tmax = 180e3,
     restore_neutron = 1)
 	
 AT (0.02, 0, DetectorDist-deltaz) RELATIVE armDetector
+
 
 
 /*
@@ -1167,156 +1175,7 @@ COMPONENT nD_Mantid_0 = Monitor_nD(
     filename = "bank01_events.dat")
         AT (-0.25, -0.25, DetectorDist+deltaz) RELATIVE armSample
         ROTATED (0, 0, 0) RELATIVE armSample
-/*
-COMPONENT nD_Mantid_1 = Monitor_nD(
-        options ="mantid square x limits=[-0.3 0.3] bins=200 y limits=[-0.3 0.3] bins=200, neutron pixel min=2638402 t, list all neutrons",
-    xmin = -0.3,
-    xmax = 0.3,
-    ymin = -0.3,
-    ymax = 0.3,
-    restore_neutron = 1,
-    filename = "bank01_events.dat")
-  AT (-0.3, 0, 0) RELATIVE armSample
-  ROTATED (0, -90, 0) RELATIVE armSample
-
-COMPONENT nD_Mantid_2 = Monitor_nD(
-        options ="mantid square x limits=[-0.3 0.3] bins=200 y limits=[-0.3 0.3] bins=200, neutron pixel min=4276801 t, list all neutrons",
-    xmin = -0.3,
-    xmax = 0.3,
-    ymin = -0.3,
-    ymax = 0.3,
-    restore_neutron = 1,
-    filename = "bank01_events.dat")
-  AT (0.30, 0, 0) RELATIVE armSample
-  ROTATED (0, 90, 0) RELATIVE armSample
-*/
-
-/*
-COMPONENT nD_Mantid_3 = Monitor_nD(
-        options ="mantid square x limits=[0 0.512] bins=1280 y limits=[0 0.512] bins=1280, neutron pixel min=4915203 t, list all neutrons",
-    xmin = -0.3,
-    xmax = 0.3,
-    ymin = -0.3,
-    ymax = 0.3,
-    restore_neutron = 1,
-    filename = "bank01_events.dat")
-  AT (-0.25, 0.30, -0.25) RELATIVE armSample
-  ROTATED (-90, 0, 0) RELATIVE armSample
-*/
 
 
-COMPONENT TOF_det_0 = TOF_monitor(
-nt=100, filename = "TOFdet",
-    xmin = -0.3,
-    xmax = 0.3,
-    ymin = -0.3,
-    ymax = 0.3,
- tmin = 100e3, tmax = 180e3,
-    restore_neutron = 1)
-  AT (0, 0, 0.3001) RELATIVE armSample
-
-
-
-COMPONENT LamC_0 = L_monitor(
-    nL = 160, filename = "LamC_0.dat",
-    xmin = -0.3,
-    xmax = 0.3,
-    ymin = -0.3,
-    ymax = 0.3,
-Lmin = lmin, Lmax = lmax, restore_neutron = 1)
-  AT (0, 0, 0.3001) RELATIVE armSample
-
-
-COMPONENT TOF_det_1 = TOF_monitor(
-nt=100, filename = "TOFdet",
-    xmin = -0.3,
-    xmax = 0.3,
-    ymin = -0.3,
-    ymax = 0.3,
- tmin = 100e3, tmax = 180e3,
-    restore_neutron = 1)
-  AT (-0.301, 0, 0) RELATIVE armSample
-  ROTATED (0, -90, 0) RELATIVE armSample
-
-COMPONENT LamC_1 = L_monitor(
-    nL = 160, filename = "LamC_0.dat",
-    xmin = -0.3,
-    xmax = 0.3,
-    ymin = -0.3,
-    ymax = 0.3,
-Lmin = lmin, Lmax = lmax, restore_neutron = 1)
-  AT (-0.301, 0, 0) RELATIVE armSample
-  ROTATED (0, -90, 0) RELATIVE armSample
-
-
-COMPONENT TOF_det_2 = TOF_monitor(
-nt=100, filename = "TOFdet",
-    xmin = -0.3,
-    xmax = 0.3,
-    ymin = -0.3,
-    ymax = 0.3,
- tmin = 100e3, tmax = 180e3,
-    restore_neutron = 1)
-  AT (0.301, 0, 0) RELATIVE armSample
-  ROTATED (0, 90, 0) RELATIVE armSample
-
-COMPONENT LamC_2 = L_monitor(
-    nL = 160, filename = "LamC_2.dat",
-    xmin = -0.3,
-    xmax = 0.3,
-    ymin = -0.3,
-    ymax = 0.3,
-Lmin = lmin, Lmax = lmax, restore_neutron = 1)
-  AT (0.301, 0, 0) RELATIVE armSample
-  ROTATED (0, 90, 0) RELATIVE armSample
-
-
-/*
-COMPONENT nD_Mantid_3 = Monitor_nD(
-        options ="mantid square x limits=[-0.3 0.3] bins=200 y limits=[-0.3 0.3] bins=200 lambda limits=[0 10] bins=1001,energy limits=[0 10] bins=1001, neutron pixel min=20915203 t, list all neutrons",
-    xmin = -0.3,
-    xmax = 0.3,
-    ymin = -0.3,
-    ymax = 0.3,
-    restore_neutron = 1,
-    filename = "bank02_events.dat")
-  AT (0, 0, 0.30) RELATIVE armSample
-
-
-COMPONENT nD_Mantid_4 = Monitor_nD(
-        options ="mantid square x limits=[-0.3 0.3] bins=200 y limits=[-0.3 0.3] bins=200 lambda limits=[0 10] bins=1001,energy limits=[0 10] bins=1001, neutron pixel min=13553605 t, list all neutrons",
-    xmin = -0.3,
-    xmax = 0.3,
-    ymin = -0.3,
-    ymax = 0.3,
-    restore_neutron = 1,
-    filename = "bank02_events.dat")
-  AT (-0.3, 0, 0) RELATIVE armSample
-  ROTATED (0, -90, 0) RELATIVE armSample
-
-
-COMPONENT nD_Mantid_5 = Monitor_nD(
-q
-        options ="mantid square x limits=[-0.3 0.3] bins=200 y limits=[-0.3 0.3] bins=200 lambda limits=[0 10] bins=1001,energy limits=[0 10] bins=1001, neutron pixel min=15192007 t, list all neutrons",
-    xmin = -0.3,
-    xmax = 0.3,
-    ymin = -0.3,
-    ymax = 0.3,
-    restore_neutron = 1,
-    filename = "bank02_events.dat")
-  AT (0.30, 0, 0) RELATIVE armSample
-  ROTATED (0, 90, 0) RELATIVE armSample
-*/
-COMPONENT psdDetector = PSD_monitor(
-    		filename = "Detector_psd", 
-		xwidth = DetectorX, 
-		yheight = DetectorY)
-	AT (0, 0, DetectorDist+deltaz) RELATIVE armDetector
-
-
-// MJC added 'broadcaster' component proof of concept
-COMPONENT event_broadcaster = Event_broadcaster(user1="t0_SAM", ip=sendTo, broadcast=sendPackets)
-// None of the AT ... matters as the broadcaster accepts all events which have made it this far through the instrument.
-AT(0,0,0) RELATIVE armDetector
 
 END
