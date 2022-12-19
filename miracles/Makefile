@@ -26,7 +26,7 @@ $(INSTR).c: $(INSTR).instr $(COMPS)
 	mcstas $(INSTR).instr
 
 $(LIB): $(WRAPSRC) $(WRAPINC)
-	g++ --std=c++11 $(INCLUDE) $(WRAPSRC) --shared  -o $@
+	g++ --std=c++11 $(INCLUDE) $(WRAPSRC) -fPIC --shared  -o $@
 
 run: $(INSTR).out
 	mcrun $(INSTR).instr $(MPI) -n 1000000000 $(OUTPUT) sendPackets=1

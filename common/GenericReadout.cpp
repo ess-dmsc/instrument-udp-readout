@@ -7,6 +7,8 @@
 //===----------------------------------------------------------------------===//
 #include <GenericReadout.h>
 #include <arpa/inet.h>
+#include <cstring>
+#include <stdexcept>
 
 /// \brief Use MSG_SIGNAL on Linuxes
 #ifdef MSG_NOSIGNAL
