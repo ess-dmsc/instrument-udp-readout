@@ -7,7 +7,7 @@ int broadcast = 1,
 string user1=""
 )
 OUTPUT PARAMETERS ()
-DEPENDENCY "-I src -L. -lwrapper"
+DEPENDENCY "-I src -Wl,-rpath=$(pwd) -L. -lwrapper"
 SHARE
 %{
 #include <sys/time.h>

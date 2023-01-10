@@ -29,7 +29,7 @@ $(LIB): $(WRAPSRC) $(WRAPINC)
 	g++ --std=c++11 $(INCLUDE) $(WRAPSRC) -fPIC --shared  -o $@
 
 run: $(INSTR).out
-	LD_LIBRARY_PATH=. mcrun $(INSTR).instr $(MPI) -n 1000000000 $(OUTPUT) sendPackets=1
+	mcrun $(INSTR).instr $(MPI) -n 1000000000 $(OUTPUT) sendPackets=1
 
 clean:
 	rm -fr $(INSTR).c $(INSTR).out $(INSTR).out.* $(INSTR)_* $(LIB)
