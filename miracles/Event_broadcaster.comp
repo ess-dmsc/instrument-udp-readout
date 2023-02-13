@@ -7,7 +7,7 @@ int broadcast = 1,
 string user1=""
 )
 OUTPUT PARAMETERS ()
-DEPENDENCY "-I src -Wl,-rpath=$(pwd) -L. -lwrapper"
+DEPENDENCY "-I src -L. -lwrapper"
 SHARE
 %{
 #include <sys/time.h>
@@ -45,7 +45,7 @@ SHARE
     double r = sqrt(z*z + x*x);
     double theta = acos(1.0*z/r);
     uint8_t hetube = 47 - (theta - thmin)/tubearc;
-    //printf("theta: %f, hetube %u\n", theta, hetube);
+    printf("theta: %f, hetube %u\n", theta, hetube);
 
     if ((theta < thmin) || (theta > thmax)) {
       return 255;
@@ -94,14 +94,25 @@ SHARE
     }
 
     double pos = (fabs(y) - ymin)/tubeheight; // between 0.0 and 1.0
+    //printf("Tube %c, pos %f\n", AorB == 0 ? 'A' : 'B', pos);
 
     // TODO needs fixing (maybe)
-    if (AorB == 0 ) { // A-end of tube
-      *A = round(7000 * (1.0 - pos));
-      *B = 7000;
-    } else { // B-end of tube
-      *A = 7000;
-      *B = round(7000 * (1.0 - pos));
+    if (y > 0 ) {
+      if (AorB == 0 ) { // A-end of tube
+        *A = round(7000 * (1.0 - pos));
+        *B = 7000;
+      } else { // B-end of tube
+        *A = 7000;
+        *B = round(7000 * (1.0 - pos));
+      }
+    } else {
+      if (AorB == 1 ) { // A-end of tube
+        *A = round(7000 * (pos));
+        *B = 7000;
+      } else { // B-end of tube
+        *A = 7000;
+        *B = round(7000 * (pos));
+      }
     }
     return;
   }
@@ -145,7 +156,7 @@ TRACE
 
   if (broadcast && readouts > 10){
 	  // TODO combine these three into a single 'flush' call?
-    printf("Sending 10 readouts\n");
+    //printf("Sending 10 readouts\n");
 	  miracles_readout_send(miracles);
 		miracles_readout_newPacket(miracles);
 	  miracles_readout_setPulseTime(miracles, 0, 0, 0, 0);
@@ -157,10 +168,12 @@ TRACE
 
   // Send the event to the broadcaster to be accumulated and broadcast
   if (broadcast) {
+    //printf("x,y,z, %f, %f, %f\n", x,y,z);
     int i;
-    // int masked = (y > z*0.50 + 0.14 ) ? 1 : 0;
-    // int masked = ((y > 0.14) || (y < 0.13)) ? 1 : 0;
     int masked = 0;
+    // masked = (y > z*0.50 + 0.14 ) ? 1 : 0;
+    // masked = ((y > 0.14) || (y < 0.13)) ? 1 : 0;
+    masked = (y < 0.1) ? 1 : 0;
 
     if (masked == 0) {
 
@@ -184,13 +197,13 @@ TRACE
         //printf("\n NEUTRON at theta %f, hetube %u, tube_pair %u (x,y,z %f %f %f), t %.0f(us)\n", theta, hetube, tube_pair, x, y, z, t*1000000);
         printf("READOUT - RING %u, FEN %u, TUBE %2u (hetube %2u) - A %5u, B %5u, TOF %10u (ns), TICKS %10u\n", \
                RING, FEN, TubePair, hetube, A, B, (int)TOF, TOFInTicks);
-        for (i = 0; i < p; i++) {
+        //for (i = 0; i < p; i++) {
           miracles_readout_add(miracles, 2 * RING, FEN, 0, (int)TOFInTicks, TubePair, A, B);
           readouts++;
-        }
+        //}
       }
     } else {
-      printf("Readout discarded by mask: y %f, z %f\n", y, z);
+      //printf("Readout discarded by mask: y %f, z %f\n", y, z);
     }
 
   }

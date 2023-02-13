@@ -36,7 +36,7 @@ clean:
 
 help:
 	@echo "Setup McStas environment"
-	@echo "  mcstas-3.1-environment"
+	@echo "  mcstas-3.2-environment"
 	@echo "For running the simulation"
 	@echo "  make run"
 	@echo "Options"

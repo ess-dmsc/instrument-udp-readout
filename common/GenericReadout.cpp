@@ -64,7 +64,7 @@ void GenericReadout::sockOpen(std::string ipaddr, int port) {
 
 
 int GenericReadout::send() {
-  printf("Send packet with length %u\n", DataSize);
+  //printf("Send packet with length %u\n", DataSize);
   int ret = sendto(fd, (char *)buffer, DataSize, SEND_FLAGS,
                    (struct sockaddr *)&remoteSockAddr, sizeof(remoteSockAddr));
   if (ret < 0) {

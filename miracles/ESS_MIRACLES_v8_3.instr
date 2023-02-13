@@ -19,8 +19,7 @@
 DEFINE INSTRUMENT ESS_MIRACLES(
         SRC_MIN=  1.27, SRC_MAX= 51.27,  CHO_PW1= 14.00,
         CHO_PW2=-14.00, CHO_PSE= 14.00,  CHO_FOL= 14.00,
-				//string RAD_COL= "OFF",
-        ANA_POS= 77.5,  ANA_SEC= 25.0,   ANA_RAD=  2.5,
+        ANA_POS= 48.36, ANA_SEC= 25.92,  ANA_RAD=  2.5,
 	ANA_ROT=  0,    ANA_ELE=  0.074, ANA_CUR=  2.5,
         int sendPackets=0)
 
@@ -38,7 +37,7 @@ DEFINE INSTRUMENT ESS_MIRACLES(
 //
 // RAD_COL    []   :  Radial Collimator (choice ON/OFF)
 //
-// ANA_POS  [deg]  :  angle of reference for the analyzer system position with respect to z-axis
+// ANA_POS  [deg]  :  angle of reference for the analyzer system position with respect to z-axis; (77.5 deg -> 45+9.48 deg = 54.48 deg)
 // ANA_SEC  [deg]  :  angle of a single analyzer sector
 // ANA_RAD    [m]  :  analyzer system radius (fixed 2.5 m, same as analyzer curvature)
 // ANA_ROT  [deg]  :  pitch-rotation angle for a single analyzer panel
@@ -57,8 +56,14 @@ DEFINE INSTRUMENT ESS_MIRACLES(
 //       Once F is determined, find the pairs (r1, r2) to define the radcol
 //       and also the number of slits.
 //
+// NOTE: Analyzer span angles (with respect to z-axis)
+//       alpha1 =   9.48 deg
+//       alpha2 = 165.00 deg
+//       span_analyzer_bank = alpha2-alpha1 = 
+//       span_analyzer_sector = span_analyzer_bank / 6   // 6 sectors
 //
-//
+//       ROT1 = ref. angle upper right bank = alpha1 + 1.5*span_analyzer_sector = 48.36 deg
+//       ROT2 = 90 + ROT1 - alpha1 = 90 + 1.5*span_analyzer_sector 
 //
 // OPTION_1: PWD choppers at 7.7 m / PS chopper at 8.2 m / FO chopper at 54.5 m
 //
@@ -83,7 +88,8 @@ DECLARE
   //
 
   //
-  double ROT1;      // for ANA_POS
+  double ROT1;      // for ANA_POS (the three upper right analyzers)
+  double ROT2;      // for ANA_POS (the three upper left analyzers)
   double dROT;      // for ANA_SEC
   double DSPREAD;   //
 
@@ -262,9 +268,10 @@ chopper[2][4]=CH3_freqq; // PSE
 chopper[4][4]=CH4_freqq; // FOL
 //
 ROT1=ANA_POS;
-dROT=ANA_SEC;
+ROT2=ROT1+90-9.48  -2.5; // 2.5 deg to adjust
+dROT=ANA_SEC; // dROT = (angle2-angle1)/(6 sectors)=(165 deg - 9.5 deg )/6 = 25.92 deg
 
-//DSPREAD=0.00035; // Original value
+//DSPREAD=0.00035; // Original value, analyzer silicon 'mosaicity'
 DSPREAD=0.0035; // for faster simulation
 
 //
@@ -1227,7 +1234,7 @@ AT (0, 0, 0) RELATIVE arm_sample
 // ANALYZER
 //-------------------------------------------------------------------------
 
-
+// upper right bank
 COMPONENT An1_rot_axis=Arm()
 AT (0,0,0) RELATIVE Sample
 ROTATED (0,ROT1,0) RELATIVE Sample
@@ -1239,6 +1246,23 @@ ROTATED (0,ROT1-dROT,0) RELATIVE Sample
 COMPONENT An3_rot_axis=Arm()
 AT (0,0,0) RELATIVE Sample
 ROTATED (0,ROT1+dROT,0) RELATIVE Sample
+
+
+
+// upper left bank
+COMPONENT An4_rot_axis=Arm()
+AT (0,0,0) RELATIVE Sample
+ROTATED (0,ROT2,0) RELATIVE Sample
+
+COMPONENT An5_rot_axis=Arm()
+AT (0,0,0) RELATIVE Sample
+ROTATED (0,ROT2-dROT,0) RELATIVE Sample
+
+COMPONENT An6_rot_axis=Arm()
+AT (0,0,0) RELATIVE Sample
+ROTATED (0,ROT2+dROT,0) RELATIVE Sample
+
+
 
 
 
@@ -1281,6 +1305,8 @@ COMPONENT An1_E_variable_range = E_monitor (xmin=-0.05, xmax=0.05, ymin=-0.1, ym
 */
 
 
+
+// upper right bank
 COMPONENT An1_rot_axis2=Arm()
 AT (0, 0, ANA_RAD) RELATIVE An1_rot_axis
 ROTATED (ANA_ROT,0,0) RELATIVE An1_rot_axis
@@ -1296,6 +1322,26 @@ AT (0,0,ANA_RAD) RELATIVE An3_rot_axis
 ROTATED (ANA_ROT,0,0) RELATIVE An3_rot_axis
 //ROTATED (0,0,0) RELATIVE An3_rot_axis
 
+
+
+// upper left bank
+COMPONENT An4_rot_axis2=Arm()
+AT (0, 0, ANA_RAD) RELATIVE An4_rot_axis
+ROTATED (ANA_ROT,0,0) RELATIVE An4_rot_axis
+//ROTATED (0,0,0) RELATIVE An4_rot_axis
+
+COMPONENT An5_rot_axis2=Arm()
+AT (0, 0, ANA_RAD) RELATIVE An5_rot_axis
+ROTATED (ANA_ROT,0,0) RELATIVE An5_rot_axis
+//ROTATED (0,0,0) RELATIVE An5_rot_axis
+
+COMPONENT An6_rot_axis2=Arm()
+AT (0,0,ANA_RAD) RELATIVE An6_rot_axis
+ROTATED (ANA_ROT,0,0) RELATIVE An6_rot_axis
+//ROTATED (0,0,0) RELATIVE An6_rot_axis
+
+
+
 /*
 Instead of using group, WHEN conditions on the neutron angle in the zx plane
 is used to determine which detector it could hit. The GROUP statement can fail
@@ -1304,35 +1350,51 @@ at the moment and will probably be fixed in next McStas release.
 */
 
 
+// right upper bank
 COMPONENT An1 = Spherical_Backscattering_Analyser(
-  xmin=-APX/2, xmax=APX/2, ymin=-APY/2, ymax=APY/2, // MIRACLES
-  //radius=ANA_RAD, Q = q_si111, mosaic=0.0, dspread=DSPREAD, R0=1, debug=0) //radius
-  radius=ANA_CUR, Q   = q_si111, mosaic=0.0, dspread=DSPREAD, R0=1, debug=0)//curvature
-  //AT (0, 0, 0) RELATIVE An1_rot_axis2        // <-----------ORIG
+  xmin=-APX/2, xmax=APX/2, ymin=-APY/2, ymax=APY/2,
+  radius=ANA_CUR, Q   = q_si111, mosaic=0.0, dspread=DSPREAD, R0=1, debug=0)
   WHEN (n_theta > ROT1 - 0.5*dROT && n_theta < ROT1 + 0.5*dROT)
   AT (0, ANA_ELE*1, 0) RELATIVE An1_rot_axis2 // <-----------ELEVATING example
-  //GROUP ANALYZERS
-
-
-
 
 COMPONENT An2 = Spherical_Backscattering_Analyser(
-  xmin=-APX/2, xmax=APX/2, ymin=-APY/2, ymax=APY/2, // MIRACLES
-  //radius=ANA_RAD, Q = q_si111, mosaic=0.0, dspread=DSPREAD, R0=1, debug=0)
-  radius=ANA_CUR, Q   = q_si111, mosaic=0.0, dspread=DSPREAD, R0=1, debug=0)//curvature
-  WHEN (n_theta < ROT1 - 0.5*dROT)
+  xmin=-APX/2, xmax=APX/2, ymin=-APY/2, ymax=APY/2, 
+  radius=ANA_CUR, Q   = q_si111, mosaic=0.0, dspread=DSPREAD, R0=1, debug=0)
+  //WHEN (n_theta < ROT1 - 0.5*dROT)
+  WHEN (n_theta > ROT1 - 1.5*dROT && n_theta < ROT1 - 0.5*dROT)
   AT (0, ANA_ELE*1, 0) RELATIVE An2_rot_axis2
-//GROUP ANALYZERS
-
-
 
 COMPONENT An3 = Spherical_Backscattering_Analyser(
-  xmin=-APX/2, xmax=APX/2, ymin=-APY/2, ymax=APY/2, // MIRACLES
-  //radius=ANA_RAD, Q = q_si111, mosaic=0.0, dspread=DSPREAD, R0=1, debug=0)
-  radius=ANA_CUR, Q   = q_si111, mosaic=0.0, dspread=DSPREAD, R0=1, debug=0)//curvature
-  WHEN (n_theta > ROT1 + 0.5*dROT)
+  xmin=-APX/2, xmax=APX/2, ymin=-APY/2, ymax=APY/2, 
+  radius=ANA_CUR, Q   = q_si111, mosaic=0.0, dspread=DSPREAD, R0=1, debug=0)
+  //WHEN (n_theta > ROT1 + 0.5*dROT)
+  WHEN (n_theta > ROT1 + 0.5*dROT && n_theta < ROT1 + 1.5*dROT)
   AT (0, ANA_ELE*1, 0) RELATIVE An3_rot_axis2
-//GROUP ANALYZERS
+
+
+
+// left upper bank
+COMPONENT An4 = Spherical_Backscattering_Analyser(
+  xmin=-APX/2, xmax=APX/2, ymin=-APY/2, ymax=APY/2,
+  radius=ANA_CUR, Q   = q_si111, mosaic=0.0, dspread=DSPREAD, R0=1, debug=0)
+  WHEN (n_theta > ROT2 - 0.5*dROT && n_theta < ROT2 + 0.5*dROT)
+  AT (0, ANA_ELE*1, 0) RELATIVE An4_rot_axis2 // <-----------ELEVATING example
+
+COMPONENT An5 = Spherical_Backscattering_Analyser(
+  xmin=-APX/2, xmax=APX/2, ymin=-APY/2, ymax=APY/2, 
+  radius=ANA_CUR, Q   = q_si111, mosaic=0.0, dspread=DSPREAD, R0=1, debug=0)
+  //WHEN (n_theta < ROT2 - 0.5*dROT)
+  WHEN (n_theta > ROT2 - 1.5*dROT && n_theta < ROT2 - 0.5*dROT)
+  AT (0, ANA_ELE*1, 0) RELATIVE An5_rot_axis2
+
+COMPONENT An6 = Spherical_Backscattering_Analyser(
+  xmin=-APX/2, xmax=APX/2, ymin=-APY/2, ymax=APY/2, 
+  radius=ANA_CUR, Q   = q_si111, mosaic=0.0, dspread=DSPREAD, R0=1, debug=0)
+  //WHEN (n_theta > ROT2 + 0.5*dROT)
+  WHEN (n_theta > ROT2 + 0.5*dROT && n_theta < ROT2 + 1.5*dROT)
+  AT (0, ANA_ELE*1, 0) RELATIVE An6_rot_axis2
+
+
 
 
 

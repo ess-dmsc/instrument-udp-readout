@@ -25,14 +25,14 @@ extern "C" {
     return br;
   }
 
-  // Destroy an existing BIFROST Readout object
+  // Destroy an existing MIRACLES Readout object
   void miracles_readout_destroy(miracles_readout_t* br){
     if (br == NULL) return;
     delete static_cast<MiraclesReadout*>(br->obj);
     free(br);
   }
 
-  // Add a readout value to the transmission buffer of the BIFROST Readout object
+  // Add a readout value to the transmission buffer of the MIRACLES Readout object
   // Automatically transmits the packet if it is full.
   void miracles_readout_add(
       miracles_readout_t* br, uint8_t ring, uint8_t fen,
@@ -46,7 +46,7 @@ extern "C" {
     obj->addReadout(ring, fen, time_high, time_low, tube, amplitude_a, amplitude_b);
   }
 
-  // Send the current data buffer for the BIFROST Readout object
+  // Send the current data buffer for the MIRACLES Readout object
   void miracles_readout_send(miracles_readout_t* br)
   {
     MiraclesReadout* obj;
@@ -54,7 +54,7 @@ extern "C" {
     obj = static_cast<MiraclesReadout*>(br->obj);
     obj->send();
   }
-  // Update the pulse and previous pulse times for the BIFROST Readout object
+  // Update the pulse and previous pulse times for the MIRACLES Readout object
   void miracles_readout_setPulseTime(
       miracles_readout_t* br, uint32_t pulse_high, uint32_t pulse_low,
       uint32_t prev_high, uint32_t prev_low
@@ -65,7 +65,7 @@ extern "C" {
     obj = static_cast<MiraclesReadout*>(br->obj);
     obj->setPulseTime(pulse_high, pulse_low, prev_high, prev_low);
   }
-  // Initialize a new packet with no readouts for the BIFROST Readout object
+  // Initialize a new packet with no readouts for the MIRACLES Readout object
   void miracles_readout_newPacket(miracles_readout_t* br)
   {
     MiraclesReadout* obj;
