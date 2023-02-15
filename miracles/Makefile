@@ -16,21 +16,21 @@ else
 	echo "Unsupported OS"
 endif
 
-
-# Behaviour requiring editing in Makefile
-#MPI=--mpi=6  # num of nodes
+# Behaviour controllable from command line
+# ENable MPI if CPU variable is set when called
 ifeq ($(origin CPU), undefined)
 	MPI=
 else
  	MPI=--mpi=$(CPU)
 endif
 
-# Behaviour controllable from command line
-OUTPUT=		# generate files for plotting and analysis
+# generate files for plotting and analysis is V is set when called
+OUTPUT=
 ifeq ($(origin V), undefined)
 	OUTPUT=--no-output
 endif
 
+# build targets below
 all: $(INSTR).out
 
 $(INSTR).out: $(LIB) $(INSTR).c
