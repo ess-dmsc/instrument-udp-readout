@@ -21,7 +21,8 @@ DEFINE INSTRUMENT ESS_MIRACLES(
         CHO_PW2=-14.00, CHO_PSE= 14.00,  CHO_FOL= 14.00,
         ANA_POS= 48.36, ANA_SEC= 25.92,  ANA_RAD=  2.5,
 	ANA_ROT= 0.0,   ANA_ELE=  0.074, ANA_CUR=  2.5,
-        int sendPackets=0)
+        int sendPackets=0,
+        int debugPrintf=0)
 
 
 //
@@ -59,11 +60,11 @@ DEFINE INSTRUMENT ESS_MIRACLES(
 // NOTE: Analyzer span angles (with respect to z-axis)
 //       alpha1 =   9.48 deg
 //       alpha2 = 165.00 deg
-//       span_analyzer_bank = alpha2-alpha1 = 
+//       span_analyzer_bank = alpha2-alpha1 =
 //       span_analyzer_sector = span_analyzer_bank / 6   // 6 sectors
 //
 //       ROT1 = ref. angle upper right bank = alpha1 + 1.5*span_analyzer_sector = 48.36 deg
-//       ROT2 = 90 + ROT1 - alpha1 = 90 + 1.5*span_analyzer_sector 
+//       ROT2 = 90 + ROT1 - alpha1 = 90 + 1.5*span_analyzer_sector
 //
 // OPTION_1: PWD choppers at 7.7 m / PS chopper at 8.2 m / FO chopper at 54.5 m
 //
@@ -101,7 +102,8 @@ DECLARE
   double APX; // APX=dROT*DEG2RAD*ANA_RAD*0.9;
   double APY; // APY=0.94;
 
-  
+  int flag_Mask1; // a boolean though
+
   //===========================================================================================
   //___________________________________________________________________________________________
 
@@ -287,6 +289,10 @@ ANA_ROT = (-atan(ANA_ELE/ANA_RAD)) * (180/3.14); // (-/+) sign for (upper/lower)
 //ANA_ELE =0;
 //ANA_ROT =0;
 //NOTE: can also remove ANA_ROT from GUI since it is finally defined here
+
+
+flag_Mask1=0;
+
 %}
 //===========================================================================================
 
@@ -311,8 +317,8 @@ COMPONENT Source = ESS_butterfly(
         AT (0.0, 0.0, 0.0) RELATIVE origin
 EXTEND %{
   // POS-TIME AT START
-  //printf("\n xyz %f, %f, %f\n", x, y, z);
-  //printf("\n xyzt %f, %f, %f, %f\n", x, y, z, t);
+  //printf("xyz %f, %f, %f\n", x, y, z);
+  //printf("xyzt %f, %f, %f, %f\n", x, y, z, t);
 %}
 
 
@@ -1151,7 +1157,7 @@ EXTEND
   }
   else if(vy<0){
       n_zheta=-1; // -1= for LOWER bank
-  } 
+  }
   //printf("n_theta = %lf \n", n_theta); // shows values between 0 and 360 deg
 
 
@@ -1352,14 +1358,14 @@ AT (0, 0, ANA_RAD*1.0) RELATIVE An1_rot_axis
 ROTATED (ANA_ROT*1.0,0,0) RELATIVE An1_rot_axis   // <--- beware the sign: upper bank is (+ANA_ROT)
 //
 COMPONENT An11_rot_axis2=Arm() // 1st lower panel
-AT (0, 0, ANA_RAD*1.0) RELATIVE An11_rot_axis     
+AT (0, 0, ANA_RAD*1.0) RELATIVE An11_rot_axis
 ROTATED (-ANA_ROT*1.0,0,0) RELATIVE An11_rot_axis // <--- beware the sign: lower bank is (-ANA_ROT)
 //
 /*
 // An111 is for the 1st double spherical panel (upper+lower)
 // An111 substitutes An1 and An11.
 // In this case ANA_ROT should be (overrided as parameter and) set to 0.
-COMPONENT An111_rot_axis2=Arm() // 1st upper and lower 
+COMPONENT An111_rot_axis2=Arm() // 1st upper and lower
 AT (0, 0, ANA_RAD*1.0) RELATIVE An111_rot_axis      // improvement: its own arm named An111_rot_axis
 ROTATED (-ANA_ROT*0.0,0,0) RELATIVE An111_rot_axis  // <--- beware the sign/value: ANA_ROT = 0
 */
@@ -1381,7 +1387,7 @@ COMPONENT An4_rot_axis2=Arm()
 AT (0, 0, ANA_RAD) RELATIVE An4_rot_axis
 ROTATED (ANA_ROT,0,0) RELATIVE An4_rot_axis
 //
-COMPONENT An444_rot_axis2=Arm() // 1st upper and lower 
+COMPONENT An444_rot_axis2=Arm() // 1st upper and lower
 AT (0, 0, ANA_RAD*1.0) RELATIVE An444_rot_axis      // improvement: its own arm named An111_rot_axis
 ROTATED ( -ANA_ROT*0.0,0,0) RELATIVE An444_rot_axis  // <--- beware the sign/value: ANA_ROT = 0
 
@@ -1412,28 +1418,28 @@ at the moment and will probably be fixed in next McStas release.
 
 // 1st Analyzer Panel (segmentated)
 //
-// segmentated into upper and lower, according to 'n_zheta' flag 
+// segmentated into upper and lower, according to 'n_zheta' flag
 //
 
-COMPONENT An1 = Spherical_Backscattering_Analyser(    // 1st Upper Panel 
+COMPONENT An1 = Spherical_Backscattering_Analyser(    // 1st Upper Panel
   xmin=-APX/2, xmax=APX/2, ymin=-APY/2, ymax=APY/2,
   radius=ANA_CUR, Q   = q_si111, mosaic=0.0, dspread=DSPREAD, R0=1, debug=0)
 WHEN ( (n_theta > (ROT1 - 0.5*dROT)) && (n_theta < (ROT1 + 0.5*dROT) )  && (n_zheta == 1) ) // lower flag n_zheta
 AT (0, ANA_ELE*1.0, 0) RELATIVE An1_rot_axis2
 EXTEND %{
-  //printf("\n xyzt, vy, n_theta, at PANEL 1: %f, %f, %f, %f, %f, %f\n", x, y, z, t, vy, n_theta); // 
-  printf("\n angle range for PANEL 1: %f, %f\n", ((ROT1 - 0.5*dROT)),  ((ROT1 + 0.5*dROT)) ); // (35.40, 61.32) deg
+  //printf("xyzt, vy, n_theta, at PANEL 1: %f, %f, %f, %f, %f, %f\n", x, y, z, t, vy, n_theta); //
+  printf("angle range for PANEL 1: %f, %f\n", ((ROT1 - 0.5*dROT)),  ((ROT1 + 0.5*dROT)) ); // (35.40, 61.32) deg
 %}
 
 
 //
 COMPONENT An11 = Spherical_Backscattering_Analyser(    // 1st Lower Panel
-  xmin=-APX/2, xmax=APX/2, ymin=-APY/2, ymax=APY/2,    
+  xmin=-APX/2, xmax=APX/2, ymin=-APY/2, ymax=APY/2,
   radius=ANA_CUR, Q   = q_si111, mosaic=0.0, dspread=DSPREAD, R0=1, debug=0)
 WHEN ( (n_theta >= (ROT1 - 0.5*dROT)) && (n_theta < (ROT1 + 0.5*dROT) ) && (n_zheta == -1) ) // lower flag n_zheta
 AT (0, -ANA_ELE*1.0, 0) RELATIVE An11_rot_axis2
 EXTEND %{
-  //printf("\n xyzt at PANEL 11: %f, %f, %f, %f\n", x, y, z, t); 
+  //printf("xyzt at PANEL 11: %f, %f, %f, %f\n", x, y, z, t);
 %}
 
 
@@ -1443,8 +1449,8 @@ EXTEND %{
 // 1st Analyzer Panel (non segmentated, single panel spanning up and down)
 // panel spans up and down as a single spherical surface
 //
-COMPONENT An111 = Spherical_Backscattering_Analyser(           
-  xmin=-APX/2, xmax=APX/2, ymin=2*(-APY/2), ymax=2*(APY/2),     // double vertical size 
+COMPONENT An111 = Spherical_Backscattering_Analyser(
+  xmin=-APX/2, xmax=APX/2, ymin=2*(-APY/2), ymax=2*(APY/2),     // double vertical size
   radius=ANA_CUR, Q   = q_si111, mosaic=0.0, dspread=DSPREAD, R0=1, debug=0)
 WHEN ( (n_theta > (ROT1 - 0.5*dROT)) && (n_theta < (ROT1 + 0.5*dROT) ) )
 // NOTE: this vertical condition applies here but not in independent panels,
@@ -1455,48 +1461,48 @@ AT (0, ANA_ELE*0.0, 0) RELATIVE An111_rot_axis2 // sic, ANA_ELE*0.0 since it mus
 
 
 COMPONENT An2 = Spherical_Backscattering_Analyser(
-  xmin=-APX/2, xmax=APX/2, ymin=-APY/2, ymax=APY/2, 
+  xmin=-APX/2, xmax=APX/2, ymin=-APY/2, ymax=APY/2,
   radius=ANA_CUR, Q   = q_si111, mosaic=0.0, dspread=DSPREAD, R0=1, debug=0)
   WHEN (n_theta >= ROT1 - 1.5*dROT && n_theta < ROT1 - 0.5*dROT)
   AT (0, ANA_ELE*1, 0) RELATIVE An2_rot_axis2
 EXTEND %{
-  printf("\n angle range for PANEL 2: %f, %f\n", ((ROT1 - 1.5*dROT)),  ((ROT1 - 0.5*dROT)) ); // (9.48, 35.40) deg
+  printf(" angle range for PANEL 2: %f, %f\n", ((ROT1 - 1.5*dROT)),  ((ROT1 - 0.5*dROT)) ); // (9.48, 35.40) deg
 %}
 
 
 COMPONENT An3 = Spherical_Backscattering_Analyser(
-  xmin=-APX/2, xmax=APX/2, ymin=-APY/2, ymax=APY/2, 
+  xmin=-APX/2, xmax=APX/2, ymin=-APY/2, ymax=APY/2,
   radius=ANA_CUR, Q   = q_si111, mosaic=0.0, dspread=DSPREAD, R0=1, debug=0)
   WHEN (n_theta >= ROT1 + 0.5*dROT && n_theta < ROT1 + 1.5*dROT)
   AT (0, ANA_ELE*1, 0) RELATIVE An3_rot_axis2
 EXTEND %{
-  printf("\n angle range for PANEL 3: %f, %f\n", ((ROT1 + 0.5*dROT)),  ((ROT1 + 1.5*dROT)) ); // (61.32, 87.24) deg
+  printf(" angle range for PANEL 3: %f, %f\n", ((ROT1 + 0.5*dROT)),  ((ROT1 + 1.5*dROT)) ); // (61.32, 87.24) deg
 %}
 
 
 
 COMPONENT An4 = Spherical_Backscattering_Analyser(
-  xmin=-APX/2, xmax=APX/2, ymin=-APY/2, ymax=APY/2, 
+  xmin=-APX/2, xmax=APX/2, ymin=-APY/2, ymax=APY/2,
   radius=ANA_CUR, Q=q_si111, mosaic=0.0, dspread=DSPREAD, R0=1, debug=0)
 //WHEN ( (n_theta >= (ROT2 - 0.5*dROT)) && (n_theta < (ROT2 + 0.5*dROT) )  )
 WHEN ( (n_theta >= (ROT2 - 0.5*dROT)) && (n_theta < (ROT2 + 0.5*dROT) )  ) // nosesne
 AT (0, ANA_ELE*1, 0) RELATIVE An4_rot_axis2
 EXTEND %{
-  //printf("\n xyzt, vy, n_theta, at PANEL 4: %f, %f, %f, %f, %f, %f\n", x, y, z, t, vy, n_theta); // vy mixed! is n_zheta OK?
-  printf("\n xyzt, vy, n_theta, at PANEL 4: %f, %f, %f, %f, %f, %f\n", x, y, z, t, vy, n_theta); // vy mixed! is n_zheta OK?
-  printf("\n angle range for PANEL 4: %f, %f\n", (ROT2 - 0.5*dROT), (ROT2 + 0.5*dROT) ); //  (113.42, 139.34) deg
+  //printf("xyzt, vy, n_theta, at PANEL 4: %f, %f, %f, %f, %f, %f\n", x, y, z, t, vy, n_theta); // vy mixed! is n_zheta OK?
+  printf("xyzt, vy, n_theta, at PANEL 4: %f, %f, %f, %f, %f, %f\n", x, y, z, t, vy, n_theta); // vy mixed! is n_zheta OK?
+  printf("angle range for PANEL 4: %f, %f\n", (ROT2 - 0.5*dROT), (ROT2 + 0.5*dROT) ); //  (113.42, 139.34) deg
   if(SCATTERED){
-   printf( "\n  \n"  );
-   printf( "\n  SCATTERED BY PANEL 4!  \n"  );
-   printf( "\n  \n"  );
+   printf( "  \n"  );
+   printf( "  SCATTERED BY PANEL 4!  \n"  );
+   printf( "  \n"  );
   }
 %}
 
 
 
 /*
-COMPONENT An444 = Spherical_Backscattering_Analyser(    // also blind!       
-  xmin=-APX/2, xmax=APX/2, ymin=2*(-APY/2), ymax=2*(APY/2),     // sic, double vertical size 
+COMPONENT An444 = Spherical_Backscattering_Analyser(    // also blind!
+  xmin=-APX/2, xmax=APX/2, ymin=2*(-APY/2), ymax=2*(APY/2),     // sic, double vertical size
   radius=ANA_CUR, Q   = q_si111, mosaic=0.0, dspread=DSPREAD, R0=1, debug=0)
 WHEN ( (n_theta >= (ROT2 - 0.5*dROT)) && (n_theta < (ROT2 + 0.5*dROT) ))
 // NOTE: this vertical condition applies here but not in independent panels,
@@ -1507,27 +1513,27 @@ AT (0, ANA_ELE*0.0, 0) RELATIVE An444_rot_axis2 // sic, ANA_ELE*0.0 since it mus
 
 
 COMPONENT An5 = Spherical_Backscattering_Analyser(
-  xmin=-APX/2, xmax=APX/2, ymin=-APY/2, ymax=APY/2, 
+  xmin=-APX/2, xmax=APX/2, ymin=-APY/2, ymax=APY/2,
   radius=ANA_CUR, Q=q_si111, mosaic=0.0, dspread=DSPREAD, R0=1, debug=0)
   WHEN (n_theta >= ROT2 - 1.5*dROT && n_theta < ROT2 - 0.5*dROT)
   AT (0, ANA_ELE*1, 0) RELATIVE An5_rot_axis2
 EXTEND %{
-  printf("\n angle range for PANEL 5: %f, %f\n", ((ROT2 - 1.5*dROT)),  ((ROT2 - 0.5*dROT)) ); // (87.50, 113.42) deg
+  printf(" angle range for PANEL 5: %f, %f\n", ((ROT2 - 1.5*dROT)),  ((ROT2 - 0.5*dROT)) ); // (87.50, 113.42) deg
 %}
 
 
 COMPONENT An6 = Spherical_Backscattering_Analyser(
-  xmin=-APX/2, xmax=APX/2, ymin=-APY/2, ymax=APY/2, 
+  xmin=-APX/2, xmax=APX/2, ymin=-APY/2, ymax=APY/2,
   radius=ANA_CUR, Q=q_si111, mosaic=0.0, dspread=DSPREAD, R0=1, debug=0)
   WHEN (n_theta >= ROT2 + 0.5*dROT && n_theta < ROT2 + 1.5*dROT)
   AT (0, ANA_ELE*1, 0) RELATIVE An6_rot_axis2
 EXTEND %{
-  printf("\n angle range for PANEL 6: %f, %f\n", ((ROT2 + 0.5*dROT)),  ((ROT2 + 1.5*dROT)) ); // (139.34, 165.26) deg
+  printf(" angle range for PANEL 6: %f, %f\n", ((ROT2 + 0.5*dROT)),  ((ROT2 + 1.5*dROT)) ); // (139.34, 165.26) deg
 %}
 
 
-
-// here xxx works, commented this I got all images, big here?
+/*
+// NOTE: commenting Arm1 solves the sector 4 mistery
 
 //--- Arms for positioning detectors
 COMPONENT ArmForDet1=Arm()
@@ -1545,7 +1551,7 @@ ROTATED (180+ANA_ROT,0,0) RELATIVE An1
 //  AT (0, 0, 2.2302) RELATIVE ArmForDet1
 //
 
-// BASIS original dets relative to arm 
+// BASIS original dets relative to arm
 // goal: discrimination dE aka chorrabands
 //
 //--- Defining a final lambda monitor for the analyzer panel 1
@@ -1565,15 +1571,23 @@ COMPONENT Det1_ToF_full = TOF_monitor(
 // Mask1 is a rectangular blocker to mask and debug signal from An1
 COMPONENT Mask1 = Beamstop(
   //xmin=-0.05, xmax=0.05, ymin=-0.05, ymax=0.05) // little square
-  xmin=-0.05, xmax=0.05, ymin=-0.55, ymax=0.55) // V-Slit
+  xmin=-0.015, xmax=0.015, ymin=-0.85, ymax=0.85) // V-Slit
   //xmin=-0.55, xmax=0.55, ymin=-0.05, ymax=0.05) // H-Slit
-AT (0, 0, 0.20) RELATIVE ArmForDet1
-//BEWARE: check again THAT UPPER PANELS POINT DOWNWARD DETECTOR!
+AT (0, 0, 2.20) RELATIVE ArmForDet1
+ROTATED (-ANA_ROT,0,0) RELATIVE An1
+EXTEND %{
+  if(SCATTERED){
+	printf(" --- hitting Mask1  \n");
+	flag_Mask1 = 1; // reverse blocker effect
+	}
+%}
+
+
+*/
 
 
 
-
-// TESTING THE BLOCKER 
+// TESTING THE BLOCKER
 /*
 // blocker block --- use the previous beamstop
 //
@@ -1638,13 +1652,13 @@ COMPONENT Det1_ToF_btm = TOF_monitor(
 // yheight_small    AT(0, ypos, 1.251)
 // 0.02             0.09     the top and btm are 2cm small and away
 // 0.04             0.08     partially away
-// 0.10             0.05     half and half, touching 
+// 0.10             0.05     half and half, touching
 // 0.15             0.025    partially overlapped
 // 0.20             0.000    the three monitors are full overlapped
 */
 
 /*
-// BLOCKER REFERENCED TO ANALYZER ARM --> DOES NOT WORK 
+// BLOCKER REFERENCED TO ANALYZER ARM --> DOES NOT WORK
 //  (NOTE: REFERENCED FROM SAMPLE AS TWO CONCENTRIC CYLINDERS/BANANAS DOES NOT WORK EITHER)
 //
 COMPONENT PSD_square_BLOCKER = PSD_monitor(
@@ -1654,7 +1668,7 @@ EXTEND %{
   if(SCATTERED) ABSORB; // the blocker effect
 %}
 //
-COMPONENT PSD_square = PSD_monitor( 
+COMPONENT PSD_square = PSD_monitor(
     xwidth = 1*0.05, yheight = 1*0.2, nx=120, ny=120, filename="PSD_square", restore_neutron=1)
 AT (0, 0.000, 1.255) RELATIVE ArmForDet1
 */
@@ -1665,7 +1679,7 @@ AT (0, 0.000, 1.255) RELATIVE ArmForDet1
 -ovrelapped monitors, ok, same results as expected
 -trying to block monitor with SCATTERED, does not seem to work
 
--Is the reflected beam homogeneous (with analyzer in perfectly horizontal position)? 
+-Is the reflected beam homogeneous (with analyzer in perfectly horizontal position)?
   -shifted monitors along y-axis: half and half case but only one is populated -> seems an INHOMOGENOEUS BEAM!
 
 // chopper frequencies: 14, 238, 302 Hz
@@ -1704,7 +1718,7 @@ AT (0,0.0,0) RELATIVE arm_sample
 // Monitor that may mimic the physical 3He tubes detector array
 // TO DO: two cylinders, up and down
 //
-COMPONENT between_Analyzer_and_Detector_Banana = Monitor_nD( 
+COMPONENT between_Analyzer_and_Detector_Banana = Monitor_nD(
     yheight  = 5*2*(0.25 + 0.10 + 0.25),  // considering: up + gap + down, rewrite again in: options>>ylimits
     radius   = 1*0.25,
     //options  = "banana theta limits=[0,180] bins=50 y limits=[-1.5, 1.5] bins=128, incoming",   // bigger just to explore
@@ -1714,13 +1728,28 @@ COMPONENT between_Analyzer_and_Detector_Banana = Monitor_nD(
 AT (0, 0, 0) RELATIVE arm_sample
 EXTEND %{
   // POS-TIME AT END
-  //printf("\n xyztp %f, %f, %f, %f, %f\n", x, y, z, t, p);
+  //printf("xyztp %f, %f, %f, %f, %f\n", x, y, z, t, p);
+%}
+//
+//
+COMPONENT between_Analyzer_and_Detector_Banana_Mask1 = Monitor_nD(
+    yheight  = 5*2*(0.25 + 0.10 + 0.25),  // considering: up + gap + down, rewrite again in: options>>ylimits
+    radius   = 1*0.25,
+    //options  = "banana theta limits=[0,180] bins=50 y limits=[-1.5, 1.5] bins=128, incoming",   // bigger just to explore
+    options  = "banana theta limits=[0,180] bins=50 y limits=[-0.5, 0.5] bins=128, incoming", // realistic case
+    filename = "between_Analyzer_and_Detector_Banana_Mask1",
+    restore_neutron=1.0)
+WHEN(flag_Mask1==1) // activates this monitor to see all the absorbed neutrons by the mask
+AT (0, 0, 0) RELATIVE arm_sample
+EXTEND %{
+  // POS-TIME AT END
+  //printf("xyztp %f, %f, %f, %f, %f\n", x, y, z, t, p);
 %}
 //
 
 
 // MJC added 'broadcaster' component proof of concept
-COMPONENT event_broadcaster = Event_broadcaster(user1="t0_SAM", ip=sendTo, broadcast=sendPackets)
+COMPONENT event_broadcaster = Event_broadcaster(user1="t0_SAM", ip=sendTo, broadcast=sendPackets, debugprint=debugPrintf)
 // None of the AT ... matters as the broadcaster accepts all events which have made it this far through the instrument.
 AT(0,0,0) RELATIVE arm_sample
 

@@ -43,7 +43,7 @@ $(LIB): $(WRAPSRC) $(WRAPINC)
 	g++ --std=c++11 $(INCLUDE) $(WRAPSRC) $(LFLAGS) -o $@
 
 run: $(INSTR).out
-	mcrun $(INSTR).instr $(MPI) -n 1000000000 $(OUTPUT) sendPackets=1
+	mcrun $(INSTR).instr $(MPI) -n 1000000000 $(OUTPUT) sendPackets=1 debugPrintf=0
 
 clean:
 	rm -fr $(INSTR).c $(INSTR).out $(INSTR).out.* $(INSTR)_* $(LIB)
