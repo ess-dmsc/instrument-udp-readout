@@ -18,10 +18,10 @@ endif
 
 # Behaviour controllable from command line
 # ENable MPI if CPU variable is set when called
-ifeq ($(origin CPU), undefined)
-	MPI=
+ifeq ($(origin MPICPU), undefined)
+ MPI=
 else
- 	MPI=--mpi=$(CPU)
+ MPI=--mpi=$(MPICPU)
 endif
 
 # generate files for plotting and analysis is V is set when called
