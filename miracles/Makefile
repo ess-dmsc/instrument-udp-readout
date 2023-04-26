@@ -1,6 +1,6 @@
 # Makefile for MIRACLES
 
-INSTR=ESS_MIRACLES_v8_9
+INSTR=ESS_MIRACLES_v8_10
 COMPS=Event_broadcaster.comp
 WRAPSRC=src/wrapper.cpp src/MiraclesReadout.cpp ../common/GenericReadout.cpp
 WRAPINC=src/wrapper.h src/MiraclesReadout.h ../common/GenericReadout.h
@@ -24,6 +24,13 @@ else
  MPI=--mpi=$(MPICPU)
 endif
 
+# Specify number of events
+ifeq ($(origin EVTS), undefined)
+ EVENTS=1000000000
+else
+ EVENTS=$(EVTS)
+endif
+
 # generate files for plotting and analysis is V is set when called
 OUTPUT=
 ifeq ($(origin V), undefined)
@@ -43,7 +50,7 @@ $(LIB): $(WRAPSRC) $(WRAPINC)
 	g++ --std=c++11 $(INCLUDE) $(WRAPSRC) $(LFLAGS) -o $@
 
 run: $(INSTR).out
-	mcrun $(INSTR).instr $(MPI) -n 1000000000 $(OUTPUT) sendPackets=1 debugPrintf=0
+	mcrun $(INSTR).instr $(MPI) -n $(EVENTS) $(OUTPUT) sendPackets=1 debugPrintf=0
 
 clean:
 	rm -fr $(INSTR).c $(INSTR).out $(INSTR).out.* $(INSTR)_* $(LIB)
@@ -53,6 +60,7 @@ help:
 	@echo "  mcstas-3.1-environment (or 3.2 etc.)"
 	@echo "For running the simulation"
 	@echo "  make run"
-	@echo "Options"
-	@echo "  make V=y run    # Verbose - generate data directory"
-	@echo "  make CPU=n run  # use MPI in n instances"
+	@echo "Options (can be combined)"
+	@echo "  make V=y run     # Verbose - generate data directory"
+	@echo "  make CPU=n run   # use MPI in n instances"
+	@echo "  make EVTS=m run  # simulate m events"
